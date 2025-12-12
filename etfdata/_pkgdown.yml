@@ -1,0 +1,12 @@
+url: https://johngavin.github.io/llm
+template:
+  bootstrap: 5
+
+# Critical: Use pre-built vignettes (rendered by targets)
+# pkgdown will look in inst/doc/ or vignettes/ and copy HTML
+build_articles: false
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, tutorials, news]
+    right: [search, github]

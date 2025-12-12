@@ -1,0 +1,25 @@
+Package: etfdata
+Title: European UCITS ETF Data Collection
+Version: 0.0.0.9000
+Authors@R: person("John", "Gavin", email = "john@example.com", role = c("aut", "cre"))
+Description: Tools to fetch, clean, and store historical and metadata for European bond and equity index ETFs (UCITS) listed on the London Stock Exchange.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports: 
+    dplyr,
+    httr2,
+    lubridate,
+    magrittr,
+    purrr,
+    quantmod,
+    readr,
+    rvest,
+    stringr,
+    tibble
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
