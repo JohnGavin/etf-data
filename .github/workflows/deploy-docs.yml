@@ -21,7 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Upgrade to latest install-nix-action to get Nix >= 2.18
       - uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -30,7 +29,6 @@ jobs:
         with:
           name: rstats-on-nix
 
-      # Optional: Push to user's cache if token exists
       - uses: cachix/cachix-action@v15
         continue-on-error: true
         with:
@@ -41,30 +39,15 @@ jobs:
         env:
           CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
         run: |
-          # Instantiate the shell derivation
           DRV=$(nix-instantiate etfdata/default.nix)
-          
-          # Build dependencies (this populates /nix/store)
           nix-store -r $DRV
-          
-          # Push the closure to Cachix ONLY if token is present
           if [[ -n "$CACHIX_AUTH_TOKEN" ]]; then
-            echo "Pushing to johngavin cache..."
             nix-store -qR --include-outputs $DRV | cachix push johngavin
-          else
-            echo "Skipping Cachix push (no token found)."
           fi
 
       - name: Build Site
         run: |
-          mkdir -p etfdata/local_lib_ci
-          nix-shell etfdata/default.nix --run "
-            Rscript -e '
-              .libPaths(c("etfdata/local_lib_ci", .libPaths()));
-              devtools::install("etfdata", upgrade = "never", quick = TRUE);
-              pkgdown::build_site("etfdata", new_process = FALSE)
-            '
-          "
+          nix-shell etfdata/default.nix --run "Rscript etfdata/R/setup/deploy_site.R"
           mkdir -p _site
           cp -r etfdata/docs/* _site/
 
