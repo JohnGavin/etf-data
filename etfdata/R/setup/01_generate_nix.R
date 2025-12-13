@@ -30,7 +30,7 @@ system_pkgs <- c("quarto", "git", "pandoc")
 
 # Generate nix files
 rix(
-  r_ver = "4.3.3", # Pinning to a recent stable version
+  r_ver = "4.4.2", # Update to recent version to hit cache
   r_pkgs = r_pkgs,
   system_pkgs = system_pkgs,
   ide = "none",
