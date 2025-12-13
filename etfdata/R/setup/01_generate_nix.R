@@ -26,7 +26,7 @@ r_pkgs <- c(
 )
 
 # System packages
-system_pkgs <- c("quarto", "git")
+system_pkgs <- c("quarto", "git", "pandoc")
 
 # Generate nix files
 rix(
