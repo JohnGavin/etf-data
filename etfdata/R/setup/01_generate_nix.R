@@ -20,7 +20,7 @@ r_pkgs <- c(
   # Pipeline
   "targets", "tarchetypes",
   # Documentation
-  "pkgdown",
+  "pkgdown", "quarto", # Added quarto R package
   # Development
   "devtools", "usethis", "testthat", "lintr", "languageserver"
 )
@@ -30,7 +30,7 @@ system_pkgs <- c("quarto", "git", "pandoc")
 
 # Generate nix files
 rix(
-  r_ver = "4.4.1", # Using 4.4.1 to improve cache hit probability
+  r_ver = "4.4.1",
   r_pkgs = r_pkgs,
   system_pkgs = system_pkgs,
   ide = "none",

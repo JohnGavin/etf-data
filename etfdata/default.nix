@@ -28,6 +28,7 @@ let
       pkgdown
       purrr
       quantmod
+      quarto
       readr
       readxl
       rvest
@@ -49,7 +50,8 @@ let
       nix
       pandoc
       quarto
-      R;
+      R
+      which;
   };
   
   shell = pkgs.mkShell {
