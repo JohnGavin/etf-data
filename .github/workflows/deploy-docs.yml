@@ -1,4 +1,4 @@
-name: Deploy Docs
+name: Deploy Docs (Nix)
 
 on:
   push:
@@ -21,30 +21,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+      - uses: cachix/install-nix-action@v22
         with:
-          use-public-rspm: true
+          nix_path: nixpkgs=channel:nixos-unstable
 
-      - name: Setup Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
+      - uses: cachix/cachix-action@v12
+        with:
+          name: rstats-on-nix
 
-      - name: Setup Pandoc
-        uses: r-lib/actions/setup-pandoc@v2
-
-      - name: Install Dependencies
-        run: |
-          install.packages(c("pkgdown", "remotes", "targets", "quantmod", "httr2", "rvest", "dplyr", "tibble", "readr", "janitor", "tidyr", "stringr", "purrr", "lubridate", "readxl", "testthat", "quarto"))
-          remotes::install_deps("etfdata", dependencies = TRUE)
-        shell: Rscript {0}
+      - name: Build shell
+        # Ensure the environment can be built
+        run: nix-build etfdata/default.nix
 
       - name: Build Site
+        # Run pkgdown inside the nix shell
+        # We manually install the package to a temp lib if needed, or rely on load_all?
+        # pkgdown usually needs the package installed.
+        # But 'devtools::install()' inside nix shell fails (read-only global lib).
+        # We need to setup a local lib for the package itself.
         run: |
-          pkgdown::build_site("etfdata", new_process = FALSE)
-        shell: Rscript {0}
-
-      - name: Prepare Artifact
-        run: |
+          mkdir -p etfdata/local_lib_ci
+          nix-shell etfdata/default.nix --run "
+            Rscript -e '
+              .libPaths(c(\"etfdata/local_lib_ci\", .libPaths()));
+              devtools::install(\"etfdata\", upgrade = \"never\", quick = TRUE);
+              pkgdown::build_site(\"etfdata\", new_process = FALSE)
+            '
+          "
           mkdir -p _site
           cp -r etfdata/docs/* _site/
 
