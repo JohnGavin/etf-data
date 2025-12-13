@@ -30,7 +30,7 @@ system_pkgs <- c("quarto", "git", "pandoc")
 
 # Generate nix files
 rix(
-  r_ver = "4.4.2", # Update to recent version to hit cache
+  r_ver = "4.4.1", # Using 4.4.1 to improve cache hit probability
   r_pkgs = r_pkgs,
   system_pkgs = system_pkgs,
   ide = "none",
