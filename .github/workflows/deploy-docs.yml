@@ -43,9 +43,11 @@ jobs:
           working-directory: 'etfdata'
 
       - name: Build Site
-        # We need to install the package first
+        # Install package, Run Pipeline, Build Site
         run: |
           Rscript -e 'devtools::install("etfdata")'
+          # Run targets to populate store for vignette
+          Rscript -e 'setwd("etfdata"); targets::tar_make()'
           Rscript -e 'pkgdown::build_site("etfdata", new_process = FALSE)'
           mkdir -p _site
           cp -r etfdata/docs/* _site/
