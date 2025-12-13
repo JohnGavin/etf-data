@@ -39,6 +39,7 @@ jobs:
             any::pkgdown
             any::quarto
             any::targets
+            any::tarchetypes
             any::devtools
           working-directory: 'etfdata'
 
