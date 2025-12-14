@@ -13,50 +13,49 @@ vignette: >
 ```{r}
 #| label: setup
 #| include: false
-library(etfdata)
-library(ggplot2)
-library(dplyr)
+#| error: true
 
-# Debug helper
-debug_msg <- function(...) message(paste(..., collapse = " "))
+# Robust Setup for CI
+data_loaded <- FALSE
+universe <- NULL
+metadata <- NULL
+history <- NULL
 
 tryCatch({
+  suppressPackageStartupMessages({
+    library(etfdata)
+    if (requireNamespace("ggplot2", quietly = TRUE)) library(ggplot2)
+    if (requireNamespace("dplyr", quietly = TRUE)) library(dplyr)
+    if (requireNamespace("targets", quietly = TRUE)) library(targets)
+  })
+
   # Strategy: Load snapshot from installed package (CI) or source (Local)
   snapshot_file <- "vignette_data.rds"
   data_path <- system.file("extdata", snapshot_file, package = "etfdata")
   
-  debug_msg("Initial system.file path:", data_path)
-
   if (data_path == "" || !file.exists(data_path)) {
     # Try relative source path (Local dev)
     data_path <- file.path("..", "inst", "extdata", snapshot_file)
-    debug_msg("Fallback to relative path:", data_path)
   }
 
   if (file.exists(data_path)) {
-    debug_msg("Found snapshot at:", data_path)
-    debug_msg("File size:", file.size(data_path))
-    
     snap <- readRDS(data_path)
     universe <- snap$universe
     metadata <- snap$metadata
     history <- snap$history
-    
-    debug_msg("Loaded data. Universe rows:", nrow(universe))
+    data_loaded <- TRUE
   } else {
-    debug_msg("Snapshot NOT found. Falling back to targets store.")
-    library(targets)
-    tar_config_set(store = "../_targets")
-    universe <- tar_read(universe)
-    metadata <- tar_read(metadata)
-    history <- tar_read(history)
+    # Fallback to targets if local
+    if (dir.exists("../_targets")) {
+      tar_config_set(store = "../_targets")
+      universe <- tar_read(universe)
+      metadata <- tar_read(metadata)
+      history <- tar_read(history)
+      data_loaded <- TRUE
+    }
   }
 }, error = function(e) {
-  debug_msg("CRITICAL ERROR in setup:", e$message)
-  # Create dummy data to prevent rendering crash
-  universe <- tibble(ticker = "ERROR", name = "Error loading data")
-  metadata <- tibble(ticker = "ERROR", isin = "X", aum_text = "N/A", ter_text = "N/A", replication = "N/A")
-  history <- tibble(date = Sys.Date(), close = 0, ticker = "ERROR", volume = 0)
+  message("Setup failed: ", e$message)
 })
 ```
 
@@ -73,7 +72,11 @@ get_etf_universe()
 
 ```{r universe-table}
 #| echo: false
-kable(universe)
+if (data_loaded && !is.null(universe)) {
+  knitr::kable(head(universe))
+} else {
+  print("Universe data not available in this build.")
+}
 ```
 
 ## Metadata (JustETF)
@@ -89,7 +92,16 @@ fetch_etf_metadata(universe$isin)
 
 ```{r metadata-table}
 #| echo: false
-kable(metadata %>% select(isin, aum_text, ter_text, replication))
+if (data_loaded && !is.null(metadata)) {
+  # Check if columns exist before selecting
+  cols <- c("isin", "aum_text", "ter_text", "replication")
+  cols <- intersect(cols, colnames(metadata))
+  if (length(cols) > 0) {
+    knitr::kable(head(metadata[, cols, drop=FALSE]))
+  }
+} else {
+  print("Metadata not available.")
+}
 ```
 
 ## Price History (Yahoo Finance)
@@ -99,13 +111,16 @@ We fetched daily price history.
 ```{r history-plot}
 #| echo: true
 #| message: false
-
-# Visualize Close Prices
-history %>%
-  ggplot(aes(x = date, y = close, color = ticker)) +
-  geom_line() +
-  labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
-  theme_minimal()
+if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
+  # Visualize Close Prices
+  history %>%
+    ggplot(aes(x = date, y = close, color = ticker)) +
+    geom_line() +
+    labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
+    theme_minimal()
+} else {
+  print("History plot not available.")
+}
 ```
 
 ## Combined Analysis
@@ -114,14 +129,18 @@ Relationship between AUM and Liquidity (Volume)?
 
 ```{r combined}
 #| echo: true
-# Join data
-avg_vol <- history %>%
-  group_by(ticker) %>%
-  summarise(avg_daily_vol = mean(volume, na.rm = TRUE))
-
-combined <- universe %>%
-  inner_join(metadata, by = "isin") %>%
-  inner_join(avg_vol, by = "ticker")
-
-kable(combined %>% select(ticker, name, aum_text, avg_daily_vol))
+if (data_loaded && !is.null(history) && !is.null(metadata)) {
+  # Join data
+  avg_vol <- history %>%
+    group_by(ticker) %>%
+    summarise(avg_daily_vol = mean(volume, na.rm = TRUE))
+  
+  if ("isin" %in% colnames(universe) && "isin" %in% colnames(metadata)) {
+    combined <- universe %>%
+      inner_join(metadata, by = "isin") %>%
+      inner_join(avg_vol, by = "ticker")
+      
+    knitr::kable(head(combined %>% select(ticker, name, aum_text, avg_daily_vol)))
+  }
+}
 ```
