@@ -320,14 +320,20 @@ if (requireNamespace("targets", quietly = TRUE) &&
     }, silent = TRUE)
     
     # 2. Network Visualization
-    cat("### Pipeline Network\n")
-    tryCatch({
-      # visNetwork returns a widget, we need to print it or let it return for rendering
-      vn <- tar_visnetwork(store = store_path, targets_only = TRUE)
-      print(vn)
-    }, error = function(e) {
-      message("Could not generate visNetwork: ", e$message)
-    })
+    # Skip interactive widget generation in CI to avoid potential rendering issues
+    if (!as.logical(Sys.getenv("CI", "false"))) {
+      cat("### Pipeline Network\n")
+      tryCatch({
+        # visNetwork returns a widget, we need to print it or let it return for rendering
+        vn <- tar_visnetwork(store = store_path, targets_only = TRUE)
+        print(vn)
+      }, error = function(e) {
+        message("Could not generate visNetwork: ", e$message)
+      })
+    } else {
+      cat("### Pipeline Network\n")
+      message("Interactive network visualization skipped in CI environment.")
+    }
     
   } else {
     message("Targets store not found. Checked: ", paste(possible_paths, collapse = ", "))
