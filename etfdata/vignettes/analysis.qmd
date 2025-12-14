@@ -265,9 +265,58 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
 
 ### Session Info
 
-::: {.callout-note collapse="true"}
-## Session Info
-```{r session-info}
-sessionInfo()
+### Data Structures
+
+```{r data-sizes}
+if (data_loaded) {
+  print("Universe:")
+  str(universe)
+  print("Metadata:")
+  str(metadata)
+  print("History:")
+  str(history)
+}
 ```
-:::
+
+## Targets Metadata
+
+We analyze the reproducibility pipeline metadata (runtime, memory, storage) if available.
+
+```{r targets-meta}
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+if (requireNamespace("targets", quietly = TRUE) && 
+    requireNamespace("visNetwork", quietly = TRUE)) {
+  
+  # Check for local targets store
+  store_path <- "../_targets"
+  if (dir.exists(store_path)) {
+    tar_config_set(store = store_path)
+    
+    # 1. Meta Table
+    if (!is.null(tar_meta(store = store_path))) {
+      meta <- tar_meta(store = store_path, fields = c("name", "type", "bytes", "time", "seconds"))
+      if (nrow(meta) > 0) {
+        cat("### Pipeline Metadata\n")
+        knitr::kable(meta, caption = "Targets Pipeline Metadata")
+      }
+    }
+    
+    # 2. Network Visualization
+    # Note: static image capture might be needed for some PDF outputs, 
+    # but for HTML this generates an interactive widget.
+    cat("### Pipeline Network\n")
+    tryCatch({
+      tar_visnetwork(store = store_path, targets_only = TRUE)
+    }, error = function(e) {
+      message("Could not generate visNetwork: ", e$message)
+    })
+    
+  } else {
+    message("Targets store not found at ", store_path, ". Metadata visualization skipped.")
+  }
+}
+```
