@@ -1,17 +1,23 @@
 #' Get ETF Universe
 #'
-#' Retrieves the list of ETFs to track. Currently uses a static seed list.
+#' Retrieves the list of ETFs to track. 
+#' 
+#' Currently uses a bundled snapshot of European UCITS ETFs for reproducibility and offline access.
+#' Future versions may implement dynamic scraping or API fetching.
+#'
+#' @param n Integer. Maximum number of ETFs to return. Default is Inf (all).
 #'
 #' @return A tibble with columns: ticker, name, isin, currency
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#'   get_etf_universe()
+#'   get_etf_universe(n = 5)
 #' }
 #'
 #' @importFrom readr read_csv
-get_etf_universe <- function() {
+#' @importFrom utils head
+get_etf_universe <- function(n = Inf) {
   path <- system.file("extdata", "seed_universe.csv", package = "etfdata")
   if (path == "") {
     # Fallback for development if package not installed
@@ -27,5 +33,11 @@ get_etf_universe <- function() {
     }
   }
   
-  readr::read_csv(path, show_col_types = FALSE)
+  res <- readr::read_csv(path, show_col_types = FALSE)
+  
+  if (is.finite(n) && n < nrow(res)) {
+    return(head(res, n))
+  }
+  
+  res
 }
