@@ -5,6 +5,11 @@
 #' @return A tibble with columns: ticker, name, isin, currency
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#'   get_etf_universe()
+#' }
+#'
 #' @importFrom readr read_csv
 get_etf_universe <- function() {
   path <- system.file("extdata", "seed_universe.csv", package = "etfdata")

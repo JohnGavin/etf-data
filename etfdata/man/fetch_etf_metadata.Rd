@@ -15,3 +15,9 @@ A tibble with metadata columns.
 \description{
 Scrapes metadata (AUM, TER, etc.) for a given ETF ISIN from JustETF.
 }
+\examples{
+\dontrun{
+  fetch_etf_metadata("IE00B3XXRP09")
+}
+
+}

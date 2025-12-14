@@ -19,3 +19,9 @@ A tibble with Date, Open, High, Low, Close, Volume, Adjusted columns.
 \description{
 Retrieves daily OHLCV data for a given ticker using quantmod/Yahoo.
 }
+\examples{
+\dontrun{
+  fetch_price_history("VUSA.L")
+}
+
+}

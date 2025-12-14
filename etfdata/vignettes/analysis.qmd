@@ -61,13 +61,15 @@ tryCatch({
 
 ## ETF Universe
 
-We start by defining the universe of European UCITS ETFs.
+We start by defining the universe of European UCITS ETFs. 
+
+**Note:** The data displayed in this vignette is a subset (Top 5 by AUM) generated during the build process to ensure reproducibility and performance.
 
 ```{r universe-code}
 #| echo: true
 #| eval: false
-# Code used to generate this data:
-get_etf_universe()
+# The function used to generate the full universe:
+get_etf_universe
 ```
 
 ```{r universe-table}
@@ -112,12 +114,14 @@ We fetched daily price history.
 #| echo: true
 #| message: false
 if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
-  # Visualize Close Prices
+  # Visualize Close Prices with Facets
   history %>%
     ggplot(aes(x = date, y = close, color = ticker)) +
     geom_line() +
+    facet_wrap(~ticker, scales = "free_y") +
     labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
 } else {
   print("History plot not available.")
 }
@@ -139,8 +143,32 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
     combined <- universe %>%
       inner_join(metadata, by = "isin") %>%
       inner_join(avg_vol, by = "ticker")
-      
-    knitr::kable(head(combined %>% select(ticker, name, aum_text, avg_daily_vol)))
+    
+    # Parse AUM
+    if (requireNamespace("stringr", quietly = TRUE) && requireNamespace("dplyr", quietly = TRUE)) {
+       combined <- bind_cols(combined, parse_aum(combined$aum_text))
+    }
+
+    knitr::kable(head(combined %>% select(ticker, name, currency, aum_amount, aum_units, avg_daily_vol)))
   }
+}
+```
+
+## Metadata
+
+```{r session-info}
+sessionInfo()
+```
+
+### Data Sizes
+
+```{r data-sizes}
+if (data_loaded) {
+  print("Universe:")
+  str(universe)
+  print("Metadata:")
+  str(metadata)
+  print("History:")
+  str(history)
 }
 ```

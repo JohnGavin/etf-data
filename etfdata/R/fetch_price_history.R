@@ -9,6 +9,11 @@
 #' @return A tibble with Date, Open, High, Low, Close, Volume, Adjusted columns.
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#'   fetch_price_history("VUSA.L")
+#' }
+#'
 #' @importFrom quantmod getSymbols
 #' @importFrom tibble as_tibble rownames_to_column
 #' @importFrom dplyr rename mutate select

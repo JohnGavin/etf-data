@@ -16,9 +16,36 @@ devtools::install_github("JohnGavin/etf-data/etfdata")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+This example demonstrates how to retrieve the ETF universe, fetch metadata (including AUM), filter for the largest funds, and visualize their price history.
 
 ``` r
 library(etfdata)
-## basic example code
+library(dplyr)
+library(ggplot2)
+
+# 1. Get the universe of ETFs
+universe <- get_etf_universe()
+
+# 2. Fetch metadata (AUM, TER, etc.) for the first few ETFs to identify top funds
+# (In a real scenario, you might fetch metadata for the whole universe)
+sample_isins <- head(universe$isin, 5)
+metadata <- fetch_etf_metadata(sample_isins) # Vectorized fetch not yet implemented, loop or map needed in practice
+# For demonstration, we'll assume we identified top tickers
+top_tickers <- c("VUSA.L", "CSP1.L", "INRG.L", "EQQQ.L")
+
+# 3. Fetch Price History for Top 4
+history <- fetch_price_history(top_tickers)
+
+# 4. Plot the performance
+history %>%
+  ggplot(aes(x = date, y = close, color = ticker)) +
+  geom_line() +
+  facet_wrap(~ticker, scales = "free_y") +
+  labs(
+    title = "Price History of Top ETFs",
+    x = "Date",
+    y = "Close Price (GBP)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
 ```

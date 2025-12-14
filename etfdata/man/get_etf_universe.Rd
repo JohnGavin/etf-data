@@ -12,3 +12,9 @@ A tibble with columns: ticker, name, isin, currency
 \description{
 Retrieves the list of ETFs to track. Currently uses a static seed list.
 }
+\examples{
+\dontrun{
+  get_etf_universe()
+}
+
+}

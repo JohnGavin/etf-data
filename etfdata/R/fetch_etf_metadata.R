@@ -7,6 +7,11 @@
 #' @return A tibble with metadata columns.
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#'   fetch_etf_metadata("IE00B3XXRP09")
+#' }
+#'
 #' @importFrom httr2 request req_headers req_perform resp_body_html resp_status
 #' @importFrom rvest html_table
 #' @importFrom dplyr filter select pull bind_rows
