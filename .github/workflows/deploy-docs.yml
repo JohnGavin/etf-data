@@ -78,7 +78,7 @@ jobs:
           Rscript -e 'devtools::install("etfdata")'
           
           # 4. Build Site (Vignette will find data via system.file)
-          Rscript -e 'pkgdown::build_site("etfdata", new_process = FALSE)'
+          Rscript -e 'pkgdown::build_site("etfdata")'
           mkdir -p _site
           cp -r etfdata/docs/* _site/
 
