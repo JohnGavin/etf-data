@@ -21,6 +21,11 @@
 #' @importFrom magrittr %>%
 #' @importFrom stats runif
 fetch_price_history <- function(ticker, start_date = "2020-01-01", end_date = Sys.Date()) {
+  # Handle vector input
+  if (length(ticker) > 1) {
+    return(purrr::map_dfr(ticker, fetch_price_history, start_date = start_date, end_date = end_date))
+  }
+
   # quantmod::getSymbols loads data into an environment by default.
   # We use auto.assign = FALSE to get the object directly.
   

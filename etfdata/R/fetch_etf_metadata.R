@@ -20,6 +20,11 @@
 #' @importFrom purrr map_dfr
 #' @importFrom stats runif
 fetch_etf_metadata <- function(isin) {
+  # Handle vector input
+  if (length(isin) > 1) {
+    return(purrr::map_dfr(isin, fetch_etf_metadata))
+  }
+
   url <- paste0("https://www.justetf.com/uk/etf-profile.html?isin=", isin)
   
   # Polite delay
