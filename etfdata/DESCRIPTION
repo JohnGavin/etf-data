@@ -20,6 +20,8 @@ Imports:
     stringr,
     tibble
 Suggests: 
+    ggplot2,
     knitr,
-    rmarkdown
+    rmarkdown,
+    targets
 VignetteBuilder: knitr
