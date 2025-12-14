@@ -47,12 +47,15 @@ jobs:
         env:
           TARGETS_STORE: ${{ github.workspace }}/etfdata/_targets
         run: |
-          echo "Checking targets store at $TARGETS_STORE"
-          ls -R etfdata/_targets || echo "Store not found via relative path"
-          ls -R $TARGETS_STORE || echo "Store not found via absolute path"
-          
           Rscript -e 'devtools::install("etfdata")'
           Rscript -e 'setwd("etfdata"); targets::tar_make()'
+          
+          # Debug: Verify store creation
+          ls -R etfdata/_targets || echo "Store missing after make!"
+          
+          # Create sidecar file for pkgdown isolation
+          echo "${{ github.workspace }}/etfdata/_targets" > etfdata/vignettes/targets_store_path.txt
+          
           Rscript -e 'pkgdown::build_site("etfdata", new_process = FALSE)'
           mkdir -p _site
           cp -r etfdata/docs/* _site/

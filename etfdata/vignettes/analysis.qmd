@@ -18,21 +18,30 @@ library(targets)
 library(ggplot2)
 library(dplyr)
 
-# Debugging for CI
-message("Current WD: ", getwd())
+# 1. Try Environment Variable (CI)
 store_path <- Sys.getenv("TARGETS_STORE")
-message("Env TARGETS_STORE: ", store_path)
 
-if (store_path == "") {
-  store_path <- "../_targets"
-  message("Defaulting store_path to: ", store_path)
+# 2. Try Local File (Sidecar for CI if Env Var fails)
+if (store_path == "" && file.exists("targets_store_path.txt")) {
+  store_path <- trimws(readLines("targets_store_path.txt", warn = FALSE)[1])
+  message("Read store path from file: ", store_path)
 }
 
+# 3. Default to relative path (Local interactive)
+if (store_path == "") {
+  store_path <- "../_targets"
+  message("Defaulting to relative path: ", store_path)
+}
+
+message("Final Store Path: ", store_path)
+
 if (dir.exists(store_path)) {
-  message("Store path exists.")
-  message("Contents of store: ", paste(list.files(store_path), collapse = ", "))
+  message("Store path verified: ", store_path)
 } else {
-  message("WARNING: Store path does NOT exist.")
+  message("WARNING: Store path not found: ", store_path)
+  # Attempt to list parent dirs to help debug
+  message("CWD: ", getwd())
+  message("Parent dir contents: ", paste(list.files(".."), collapse = ", "))
 }
 
 # Set the store
