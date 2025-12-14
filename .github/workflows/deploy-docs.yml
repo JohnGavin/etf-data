@@ -52,13 +52,24 @@ jobs:
           # This ensures it is included when we install the package in step 3
           Rscript -e '
             library(targets);
+            library(dplyr);
             setwd("etfdata");
             tar_config_set(store = "_targets");
+            
             uni <- tar_read(universe);
             meta <- tar_read(metadata);
             hist <- tar_read(history);
+            
+            # Filter to top 5 tickers to prevent OOM in vignette build
+            # Assuming "universe" has some order, or just take first 5
+            top_tickers <- head(uni$ticker, 5)
+            
+            uni_small <- uni %>% filter(ticker %in% top_tickers)
+            meta_small <- meta %>% filter(ticker %in% top_tickers)
+            hist_small <- hist %>% filter(ticker %in% top_tickers)
+            
             if(!dir.exists("inst/extdata")) dir.create("inst/extdata", recursive = TRUE);
-            saveRDS(list(universe=uni, metadata=meta, history=hist), "inst/extdata/vignette_data.rds")
+            saveRDS(list(universe=uni_small, metadata=meta_small, history=hist_small), "inst/extdata/vignette_data.rds")
           '
           
           # 3. Install package (Now includes the data snapshot)

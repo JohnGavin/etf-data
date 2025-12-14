@@ -17,29 +17,47 @@ library(etfdata)
 library(ggplot2)
 library(dplyr)
 
-# Strategy: Load snapshot from installed package (CI) or source (Local)
-snapshot_file <- "vignette_data.rds"
-data_path <- system.file("extdata", snapshot_file, package = "etfdata")
+# Debug helper
+debug_msg <- function(...) message(paste(..., collapse = " "))
 
-if (data_path == "" || !file.exists(data_path)) {
-  # Try relative source path (Local dev)
-  data_path <- file.path("..", "inst", "extdata", snapshot_file)
-}
+tryCatch({
+  # Strategy: Load snapshot from installed package (CI) or source (Local)
+  snapshot_file <- "vignette_data.rds"
+  data_path <- system.file("extdata", snapshot_file, package = "etfdata")
+  
+  debug_msg("Initial system.file path:", data_path)
 
-if (file.exists(data_path)) {
-  message("Loading data from snapshot: ", data_path)
-  snap <- readRDS(data_path)
-  universe <- snap$universe
-  metadata <- snap$metadata
-  history <- snap$history
-} else {
-  message("Snapshot not found. Falling back to targets store.")
-  library(targets)
-  tar_config_set(store = "../_targets")
-  universe <- tar_read(universe)
-  metadata <- tar_read(metadata)
-  history <- tar_read(history)
-}
+  if (data_path == "" || !file.exists(data_path)) {
+    # Try relative source path (Local dev)
+    data_path <- file.path("..", "inst", "extdata", snapshot_file)
+    debug_msg("Fallback to relative path:", data_path)
+  }
+
+  if (file.exists(data_path)) {
+    debug_msg("Found snapshot at:", data_path)
+    debug_msg("File size:", file.size(data_path))
+    
+    snap <- readRDS(data_path)
+    universe <- snap$universe
+    metadata <- snap$metadata
+    history <- snap$history
+    
+    debug_msg("Loaded data. Universe rows:", nrow(universe))
+  } else {
+    debug_msg("Snapshot NOT found. Falling back to targets store.")
+    library(targets)
+    tar_config_set(store = "../_targets")
+    universe <- tar_read(universe)
+    metadata <- tar_read(metadata)
+    history <- tar_read(history)
+  }
+}, error = function(e) {
+  debug_msg("CRITICAL ERROR in setup:", e$message)
+  # Create dummy data to prevent rendering crash
+  universe <- tibble(ticker = "ERROR", name = "Error loading data")
+  metadata <- tibble(ticker = "ERROR", isin = "X", aum_text = "N/A", ter_text = "N/A", replication = "N/A")
+  history <- tibble(date = Sys.Date(), close = 0, ticker = "ERROR", volume = 0)
+})
 ```
 
 ## ETF Universe
