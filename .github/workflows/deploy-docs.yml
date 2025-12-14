@@ -2,12 +2,11 @@ name: Deploy Docs (Native)
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-    paths:
-      - 'etfdata/**'
-      - '.github/workflows/deploy-docs.yml'
+    branches:
+      - main
 
 permissions:
   contents: read
