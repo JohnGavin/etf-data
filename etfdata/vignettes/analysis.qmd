@@ -10,19 +10,32 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup}
+```{r}
+#| label: setup
 #| include: false
-library(targets)
 library(etfdata)
-library(dplyr)
+library(targets)
 library(ggplot2)
-library(lubridate)
-library(knitr)
+library(dplyr)
 
-# Point to the targets store
-# In CI, pkgdown builds in a temp dir, so we need an absolute path to the store in the workspace
+# Debugging for CI
+message("Current WD: ", getwd())
 store_path <- Sys.getenv("TARGETS_STORE")
-if (store_path == "") store_path <- "../_targets"
+message("Env TARGETS_STORE: ", store_path)
+
+if (store_path == "") {
+  store_path <- "../_targets"
+  message("Defaulting store_path to: ", store_path)
+}
+
+if (dir.exists(store_path)) {
+  message("Store path exists.")
+  message("Contents of store: ", paste(list.files(store_path), collapse = ", "))
+} else {
+  message("WARNING: Store path does NOT exist.")
+}
+
+# Set the store
 tar_config_set(store = store_path)
 ```
 

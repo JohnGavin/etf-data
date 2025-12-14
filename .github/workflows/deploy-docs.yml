@@ -44,12 +44,14 @@ jobs:
           working-directory: 'etfdata'
 
       - name: Build Site
-        # Install package, Run Pipeline, Build Site
         env:
           TARGETS_STORE: ${{ github.workspace }}/etfdata/_targets
         run: |
+          echo "Checking targets store at $TARGETS_STORE"
+          ls -R etfdata/_targets || echo "Store not found via relative path"
+          ls -R $TARGETS_STORE || echo "Store not found via absolute path"
+          
           Rscript -e 'devtools::install("etfdata")'
-          # Run targets to populate store for vignette
           Rscript -e 'setwd("etfdata"); targets::tar_make()'
           Rscript -e 'pkgdown::build_site("etfdata", new_process = FALSE)'
           mkdir -p _site
