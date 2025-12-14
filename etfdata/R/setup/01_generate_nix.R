@@ -20,7 +20,7 @@ r_pkgs <- c(
   # Pipeline
   "targets", "tarchetypes",
   # Documentation
-  "pkgdown", "quarto", # Added quarto R package
+  "pkgdown", "quarto", "visNetwork", # Added quarto R package and visNetwork
   # Development
   "devtools", "usethis", "testthat", "lintr", "languageserver"
 )

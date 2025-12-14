@@ -71,14 +71,32 @@ The logic used to retrieve the universe list is:
 ```{r universe-code}
 #| echo: true
 #| eval: false
-path <- system.file("extdata", "seed_universe.csv", package = "etfdata")
-readr::read_csv(path, show_col_types = FALSE)
+get_etf_universe <- function() {
+  path <- system.file("extdata", "seed_universe.csv", package = "etfdata")
+  if (path == "") {
+    # Fallback for development if package not installed
+    path <- "inst/extdata/seed_universe.csv"
+  }
+  
+  if (!file.exists(path)) {
+    # Try one level up if running from package root
+    if (file.exists("inst/extdata/seed_universe.csv")) {
+        path <- "inst/extdata/seed_universe.csv"
+    } else {
+        stop("Seed universe file not found at: ", path)
+    }
+  }
+  
+  readr::read_csv(path, show_col_types = FALSE)
+}
 ```
 
 ```{r universe-table}
 #| echo: false
+#| eval: true
 if (data_loaded && !is.null(universe)) {
   knitr::kable(head(universe))
+  print(str(universe))
 } else {
   print("Universe data not available in this build.")
 }
@@ -91,26 +109,79 @@ We scrape JustETF for metadata including AUM and TER. The underlying scraping lo
 ```{r metadata-code}
 #| echo: true
 #| eval: false
-fetch_metadata_logic <- function(isin) {
+fetch_etf_metadata <- function(isin) {
+  # Handle vector input
+  if (length(isin) > 1) {
+    return(purrr::map_dfr(isin, fetch_etf_metadata))
+  }
+
   url <- paste0("https://www.justetf.com/uk/etf-profile.html?isin=", isin)
-  req <- request(url)
-  resp <- req_perform(req)
+  
+  # Polite delay
+  Sys.sleep(runif(1, 1, 2))
+  
+  req <- request(url) %>%
+    req_headers("User-Agent" = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/115.0")
+  
+  resp <- try(req_perform(req), silent = TRUE)
+  
+  if (inherits(resp, "try-error")) {
+    warning("Failed to fetch metadata for ", isin)
+    return(tibble(isin = isin))
+  }
+  
+  if (resp_status(resp) != 200) {
+    warning("HTTP error ", resp_status(resp), " for ", isin)
+    return(tibble(isin = isin))
+  }
+  
   html <- resp_body_html(resp)
   tables <- html_table(html)
-  # ... extract fields from tables ...
+  
+  # Helper to extract value from key-value tables (X1, X2)
+  get_val <- function(key_pattern) {
+    # Search all tables for the key
+    for (tbl in tables) {
+      if (ncol(tbl) >= 2) {
+        # Check if first col contains key
+        match <- tbl[str_detect(tbl[[1]], key_pattern), ]
+        if (nrow(match) > 0) {
+          return(match[[2]][1])
+        }
+      }
+    }
+    return(NA_character_)
+  }
+  
+  # Extract fields
+  aum_raw <- get_val("Fund size")
+  ter_raw <- get_val("Total expense ratio")
+  replication <- get_val("Replication")
+  dist_policy <- get_val("Distribution policy")
+  domicile <- get_val("Fund domicile")
+  
+  tibble(
+    isin = isin,
+    aum_text = aum_raw,
+    ter_text = ter_raw,
+    replication = replication,
+    distribution = dist_policy,
+    domicile = domicile,
+    source_url = url
+  )
 }
-# Apply to ISINs
-# purrr::map_dfr(universe$isin, fetch_metadata_logic)
 ```
 
 ```{r metadata-table}
 #| echo: false
+#| eval: true
 if (data_loaded && !is.null(metadata)) {
   # Check if columns exist before selecting
   cols <- c("isin", "aum_text", "ter_text", "replication")
   cols <- intersect(cols, colnames(metadata))
   if (length(cols) > 0) {
     knitr::kable(head(metadata[, cols, drop=FALSE]))
+    print(str(metadata))
   }
 } else {
   print("Metadata not available.")
@@ -124,14 +195,16 @@ We fetch daily price history from Yahoo Finance using `quantmod`.
 ```{r history-code}
 #| echo: true
 #| eval: false
-# fetch_price_history("VUSA.L")
+fetch_price_history("VUSA.L")
 ```
 
 ```{r history-plot}
 #| echo: true
 #| message: false
+#| eval: true
 if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
   # Visualize Close Prices with Facets
+  print(
   history %>%
     ggplot(aes(x = date, y = close, color = ticker)) +
     geom_line() +
@@ -139,6 +212,8 @@ if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TR
     labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
     theme_minimal() +
     theme(legend.position = "none")
+  )
+  print(str(history))
 } else {
   print("History plot not available.")
 }
@@ -168,6 +243,20 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
     }
 
     knitr::kable(head(combined %>% select(ticker, name, currency, aum_amount, aum_units, avg_daily_vol)))
+
+    if (requireNamespace("ggplot2", quietly = TRUE)) {
+      # Plot AUM vs Volume
+      print(
+        ggplot(combined, aes(x = aum_amount, y = avg_daily_vol)) +
+          geom_point() +
+          scale_x_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+          scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+          labs(title = "ETF Size vs Liquidity",
+               x = "Assets Under Management (AUM)",
+               y = "Average Daily Volume") +
+          theme_minimal()
+      )
+    }
   }
 }
 ```
@@ -175,10 +264,6 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
 ## Metadata
 
 ### Session Info
-
-```{r session-info}
-sessionInfo()
-```
 
 ### Data Structures
 
@@ -190,5 +275,48 @@ if (data_loaded) {
   str(metadata)
   print("History:")
   str(history)
+}
+```
+
+## Targets Metadata
+
+We analyze the reproducibility pipeline metadata (runtime, memory, storage) if available.
+
+```{r targets-meta}
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+if (requireNamespace("targets", quietly = TRUE) && 
+    requireNamespace("visNetwork", quietly = TRUE)) {
+  
+  # Check for local targets store
+  store_path <- "../_targets"
+  if (dir.exists(store_path)) {
+    tar_config_set(store = store_path)
+    
+    # 1. Meta Table
+    if (!is.null(tar_meta(store = store_path))) {
+      meta <- tar_meta(store = store_path, fields = c("name", "type", "bytes", "time", "seconds"))
+      if (nrow(meta) > 0) {
+        cat("### Pipeline Metadata\n")
+        knitr::kable(meta, caption = "Targets Pipeline Metadata")
+      }
+    }
+    
+    # 2. Network Visualization
+    # Note: static image capture might be needed for some PDF outputs, 
+    # but for HTML this generates an interactive widget.
+    cat("### Pipeline Network\n")
+    tryCatch({
+      tar_visnetwork(store = store_path, targets_only = TRUE)
+    }, error = function(e) {
+      message("Could not generate visNetwork: ", e$message)
+    })
+    
+  } else {
+    message("Targets store not found at ", store_path, ". Metadata visualization skipped.")
+  }
 }
 ```
