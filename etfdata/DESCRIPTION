@@ -26,5 +26,6 @@ Suggests:
     rmarkdown,
     targets,
     quarto,
-    visNetwork
+    visNetwork,
+    DiagrammeR
 VignetteBuilder: knitr, quarto
