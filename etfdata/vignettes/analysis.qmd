@@ -14,38 +14,46 @@ vignette: >
 #| label: setup
 #| include: false
 library(etfdata)
-library(targets)
 library(ggplot2)
 library(dplyr)
 
-# 1. Try Environment Variable (CI)
-store_path <- Sys.getenv("TARGETS_STORE")
+# Data Loading Strategy:
+# 1. CI/Pkgdown Build: Look for a pre-saved RDS snapshot in the same directory.
+#    This decouples the build from the targets store location.
+# 2. Local Development: Fall back to reading directly from the targets store.
 
-# 2. Try Local File (Sidecar for CI if Env Var fails)
-if (store_path == "" && file.exists("targets_store_path.txt")) {
-  store_path <- trimws(readLines("targets_store_path.txt", warn = FALSE)[1])
-  message("Read store path from file: ", store_path)
-}
+data_path <- "vignette_data.rds"
 
-# 3. Default to relative path (Local interactive)
-if (store_path == "") {
-  store_path <- "../_targets"
-  message("Defaulting to relative path: ", store_path)
-}
-
-message("Final Store Path: ", store_path)
-
-if (dir.exists(store_path)) {
-  message("Store path verified: ", store_path)
+if (file.exists(data_path)) {
+  message("Loading data from snapshot: ", data_path)
+  snap <- readRDS(data_path)
+  universe <- snap$universe
+  metadata <- snap$metadata
+  history <- snap$history
 } else {
-  message("WARNING: Store path not found: ", store_path)
-  # Attempt to list parent dirs to help debug
-  message("CWD: ", getwd())
-  message("Parent dir contents: ", paste(list.files(".."), collapse = ", "))
+  message("Snapshot not found. Falling back to targets store.")
+  library(targets)
+  
+  # Robust local store path finding
+  possible_stores <- c("../_targets", "../../_targets", "_targets")
+  store_path <- ""
+  for (p in possible_stores) {
+    if (dir.exists(p)) {
+      store_path <- p
+      break
+    }
+  }
+  
+  if (store_path != "") {
+    message("Using targets store: ", store_path)
+    tar_config_set(store = store_path)
+    universe <- tar_read(universe)
+    metadata <- tar_read(metadata)
+    history <- tar_read(history)
+  } else {
+    warning("Could not find targets store. Vignette may fail.")
+  }
 }
-
-# Set the store
-tar_config_set(store = store_path)
 ```
 
 ## ETF Universe
@@ -61,7 +69,6 @@ get_etf_universe()
 
 ```{r universe-table}
 #| echo: false
-universe <- tar_read(universe)
 kable(universe)
 ```
 
@@ -78,7 +85,6 @@ fetch_etf_metadata(universe$isin)
 
 ```{r metadata-table}
 #| echo: false
-metadata <- tar_read(metadata)
 kable(metadata %>% select(isin, aum_text, ter_text, replication))
 ```
 
@@ -89,7 +95,6 @@ We fetched daily price history.
 ```{r history-plot}
 #| echo: true
 #| message: false
-history <- tar_read(history)
 
 # Visualize Close Prices
 history %>%
