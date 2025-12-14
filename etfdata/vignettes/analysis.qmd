@@ -19,9 +19,11 @@ library(ggplot2)
 library(lubridate)
 library(knitr)
 
-# Ensure we can read targets from the project root
-# (In a real package, targets are pre-built)
-tar_config_set(store = "../_targets")
+# Point to the targets store
+# In CI, pkgdown builds in a temp dir, so we need an absolute path to the store in the workspace
+store_path <- Sys.getenv("TARGETS_STORE")
+if (store_path == "") store_path <- "../_targets"
+tar_config_set(store = store_path)
 ```
 
 ## ETF Universe

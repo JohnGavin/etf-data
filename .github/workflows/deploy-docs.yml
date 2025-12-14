@@ -45,6 +45,8 @@ jobs:
 
       - name: Build Site
         # Install package, Run Pipeline, Build Site
+        env:
+          TARGETS_STORE: ${{ github.workspace }}/etfdata/_targets
         run: |
           Rscript -e 'devtools::install("etfdata")'
           # Run targets to populate store for vignette
