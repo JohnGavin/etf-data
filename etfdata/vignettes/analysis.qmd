@@ -8,77 +8,25 @@ vignette: >
   %\VignetteIndexEntry{ETF Data Analysis}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+execute:
+  eval: false
 ---
 
 ```{r}
 #| label: setup
 #| include: false
-#| error: true
-
-# Robust Setup for CI
-data_loaded <- FALSE
-universe <- NULL
-metadata <- NULL
-history <- NULL
-
-tryCatch({
-  suppressPackageStartupMessages({
-    library(etfdata)
-    if (requireNamespace("ggplot2", quietly = TRUE)) library(ggplot2)
-    if (requireNamespace("dplyr", quietly = TRUE)) library(dplyr)
-    if (requireNamespace("targets", quietly = TRUE)) library(targets)
-  })
-
-  # Strategy: Load snapshot from installed package (CI) or source (Local)
-  snapshot_file <- "vignette_data.rds"
-  data_path <- system.file("extdata", snapshot_file, package = "etfdata")
-  
-  if (data_path == "" || !file.exists(data_path)) {
-    # Try relative source path (Local dev)
-    data_path <- file.path("..", "inst", "extdata", snapshot_file)
-  }
-
-  if (file.exists(data_path)) {
-    snap <- readRDS(data_path)
-    universe <- snap$universe
-    metadata <- snap$metadata
-    history <- snap$history
-    data_loaded <- TRUE
-  } else {
-    # Fallback to targets if local
-    if (dir.exists("../_targets")) {
-      tar_config_set(store = "../_targets")
-      universe <- tar_read(universe)
-      metadata <- tar_read(metadata)
-      history <- tar_read(history)
-      data_loaded <- TRUE
-    }
-  }
-}, error = function(e) {
-  message("Setup failed: ", e$message)
-})
+library(etfdata)
+library(targets)
+library(ggplot2)
+library(dplyr)
 ```
 
 ## ETF Universe
 
-We start by defining the universe of European UCITS ETFs. 
-
-**Note:** The data displayed in this vignette is a subset (Top 5 by AUM) generated during the build process to ensure reproducibility and performance.
+We start by defining the universe of European UCITS ETFs.
 
 ```{r universe-code}
-#| echo: true
-#| eval: false
-# The function used to generate the full universe:
-get_etf_universe
-```
-
-```{r universe-table}
-#| echo: false
-if (data_loaded && !is.null(universe)) {
-  knitr::kable(head(universe))
-} else {
-  print("Universe data not available in this build.")
-}
+get_etf_universe()
 ```
 
 ## Metadata (JustETF)
@@ -86,24 +34,8 @@ if (data_loaded && !is.null(universe)) {
 We scraped JustETF for metadata including AUM and TER.
 
 ```{r metadata-code}
-#| echo: true
-#| eval: false
 # Code used:
-fetch_etf_metadata(universe$isin)
-```
-
-```{r metadata-table}
-#| echo: false
-if (data_loaded && !is.null(metadata)) {
-  # Check if columns exist before selecting
-  cols <- c("isin", "aum_text", "ter_text", "replication")
-  cols <- intersect(cols, colnames(metadata))
-  if (length(cols) > 0) {
-    knitr::kable(head(metadata[, cols, drop=FALSE]))
-  }
-} else {
-  print("Metadata not available.")
-}
+# fetch_etf_metadata(universe$isin)
 ```
 
 ## Price History (Yahoo Finance)
@@ -111,20 +43,13 @@ if (data_loaded && !is.null(metadata)) {
 We fetched daily price history.
 
 ```{r history-plot}
-#| echo: true
-#| message: false
-if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
-  # Visualize Close Prices with Facets
-  history %>%
-    ggplot(aes(x = date, y = close, color = ticker)) +
-    geom_line() +
-    facet_wrap(~ticker, scales = "free_y") +
-    labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
-    theme_minimal() +
-    theme(legend.position = "none")
-} else {
-  print("History plot not available.")
-}
+# Visualize Close Prices
+# history %>%
+#   ggplot(aes(x = date, y = close, color = ticker)) +
+#   geom_line() +
+#   facet_wrap(~ticker, scales = "free_y") +
+#   labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
+#   theme_minimal()
 ```
 
 ## Combined Analysis
@@ -132,43 +57,14 @@ if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TR
 Relationship between AUM and Liquidity (Volume)?
 
 ```{r combined}
-#| echo: true
-if (data_loaded && !is.null(history) && !is.null(metadata)) {
-  # Join data
-  avg_vol <- history %>%
-    group_by(ticker) %>%
-    summarise(avg_daily_vol = mean(volume, na.rm = TRUE))
-  
-  if ("isin" %in% colnames(universe) && "isin" %in% colnames(metadata)) {
-    combined <- universe %>%
-      inner_join(metadata, by = "isin") %>%
-      inner_join(avg_vol, by = "ticker")
-    
-    # Parse AUM
-    if (requireNamespace("stringr", quietly = TRUE) && requireNamespace("dplyr", quietly = TRUE)) {
-       combined <- bind_cols(combined, parse_aum(combined$aum_text))
-    }
-
-    knitr::kable(head(combined %>% select(ticker, name, currency, aum_amount, aum_units, avg_daily_vol)))
-  }
-}
-```
-
-## Metadata
-
-```{r session-info}
-sessionInfo()
-```
-
-### Data Sizes
-
-```{r data-sizes}
-if (data_loaded) {
-  print("Universe:")
-  str(universe)
-  print("Metadata:")
-  str(metadata)
-  print("History:")
-  str(history)
-}
+# Join data
+# avg_vol <- history %>%
+#   group_by(ticker) %>%
+#   summarise(avg_daily_vol = mean(volume, na.rm = TRUE))
+# 
+# combined <- universe %>%
+#   inner_join(metadata, by = "isin") %>%
+#   inner_join(avg_vol, by = "ticker")
+#   
+# knitr::kable(head(combined))
 ```
