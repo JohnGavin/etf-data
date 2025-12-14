@@ -287,36 +287,51 @@ We analyze the reproducibility pipeline metadata (runtime, memory, storage) if a
 #| eval: true
 #| message: false
 #| warning: false
+#| error: true
 
 if (requireNamespace("targets", quietly = TRUE) && 
     requireNamespace("visNetwork", quietly = TRUE)) {
   
-  # Check for local targets store
-  store_path <- "../_targets"
-  if (dir.exists(store_path)) {
-    tar_config_set(store = store_path)
+  # Robust path finding for _targets
+  store_path <- NULL
+  possible_paths <- c("_targets", "../_targets", "../../_targets")
+  
+  for (p in possible_paths) {
+    if (dir.exists(p)) {
+      store_path <- p
+      break
+    }
+  }
+  
+  if (!is.null(store_path)) {
+    # Set config for this session
+    # We use try() to avoid stopping if config is locked or issues arise
+    try(tar_config_set(store = store_path), silent = TRUE)
     
     # 1. Meta Table
-    if (!is.null(tar_meta(store = store_path))) {
-      meta <- tar_meta(store = store_path, fields = c("name", "type", "bytes", "time", "seconds"))
-      if (nrow(meta) > 0) {
-        cat("### Pipeline Metadata\n")
-        knitr::kable(meta, caption = "Targets Pipeline Metadata")
+    try({
+      if (!is.null(tar_meta(store = store_path))) {
+        meta <- tar_meta(store = store_path, fields = c("name", "type", "bytes", "time", "seconds"))
+        if (nrow(meta) > 0) {
+          cat("### Pipeline Metadata\n")
+          print(knitr::kable(meta, caption = "Targets Pipeline Metadata"))
+        }
       }
-    }
+    }, silent = TRUE)
     
     # 2. Network Visualization
-    # Note: static image capture might be needed for some PDF outputs, 
-    # but for HTML this generates an interactive widget.
     cat("### Pipeline Network\n")
     tryCatch({
-      tar_visnetwork(store = store_path, targets_only = TRUE)
+      # visNetwork returns a widget, we need to print it or let it return for rendering
+      vn <- tar_visnetwork(store = store_path, targets_only = TRUE)
+      print(vn)
     }, error = function(e) {
       message("Could not generate visNetwork: ", e$message)
     })
     
   } else {
-    message("Targets store not found at ", store_path, ". Metadata visualization skipped.")
+    message("Targets store not found. Checked: ", paste(possible_paths, collapse = ", "))
+    message("Current dir: ", getwd())
   }
 }
 ```
