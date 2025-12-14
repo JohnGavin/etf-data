@@ -45,10 +45,11 @@ jobs:
 
       - name: Build Site
         run: |
-          Rscript -e 'devtools::install("etfdata")'
+          # 1. Generate Targets Store
           Rscript -e 'setwd("etfdata"); targets::tar_make()'
           
-          # Snapshot data for vignette (Decouples pkgdown from targets path)
+          # 2. Snapshot data into package structure (inst/extdata)
+          # This ensures it is included when we install the package in step 3
           Rscript -e '
             library(targets);
             setwd("etfdata");
@@ -56,9 +57,14 @@ jobs:
             uni <- tar_read(universe);
             meta <- tar_read(metadata);
             hist <- tar_read(history);
-            saveRDS(list(universe=uni, metadata=meta, history=hist), "vignettes/vignette_data.rds")
+            if(!dir.exists("inst/extdata")) dir.create("inst/extdata", recursive = TRUE);
+            saveRDS(list(universe=uni, metadata=meta, history=hist), "inst/extdata/vignette_data.rds")
           '
           
+          # 3. Install package (Now includes the data snapshot)
+          Rscript -e 'devtools::install("etfdata")'
+          
+          # 4. Build Site (Vignette will find data via system.file)
           Rscript -e 'pkgdown::build_site("etfdata", new_process = FALSE)'
           mkdir -p _site
           cp -r etfdata/docs/* _site/

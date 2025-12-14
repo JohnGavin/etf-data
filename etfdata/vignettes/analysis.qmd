@@ -17,12 +17,14 @@ library(etfdata)
 library(ggplot2)
 library(dplyr)
 
-# Data Loading Strategy:
-# 1. CI/Pkgdown Build: Look for a pre-saved RDS snapshot in the same directory.
-#    This decouples the build from the targets store location.
-# 2. Local Development: Fall back to reading directly from the targets store.
+# Strategy: Load snapshot from installed package (CI) or source (Local)
+snapshot_file <- "vignette_data.rds"
+data_path <- system.file("extdata", snapshot_file, package = "etfdata")
 
-data_path <- "vignette_data.rds"
+if (data_path == "" || !file.exists(data_path)) {
+  # Try relative source path (Local dev)
+  data_path <- file.path("..", "inst", "extdata", snapshot_file)
+}
 
 if (file.exists(data_path)) {
   message("Loading data from snapshot: ", data_path)
@@ -33,26 +35,10 @@ if (file.exists(data_path)) {
 } else {
   message("Snapshot not found. Falling back to targets store.")
   library(targets)
-  
-  # Robust local store path finding
-  possible_stores <- c("../_targets", "../../_targets", "_targets")
-  store_path <- ""
-  for (p in possible_stores) {
-    if (dir.exists(p)) {
-      store_path <- p
-      break
-    }
-  }
-  
-  if (store_path != "") {
-    message("Using targets store: ", store_path)
-    tar_config_set(store = store_path)
-    universe <- tar_read(universe)
-    metadata <- tar_read(metadata)
-    history <- tar_read(history)
-  } else {
-    warning("Could not find targets store. Vignette may fail.")
-  }
+  tar_config_set(store = "../_targets")
+  universe <- tar_read(universe)
+  metadata <- tar_read(metadata)
+  history <- tar_read(history)
 }
 ```
 
