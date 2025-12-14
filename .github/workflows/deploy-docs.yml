@@ -41,6 +41,7 @@ jobs:
             any::targets
             any::tarchetypes
             any::devtools
+            any::visNetwork
           working-directory: 'etfdata'
 
       - name: Build Site
