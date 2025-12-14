@@ -47,13 +47,24 @@ tryCatch({
     history <- snap$history
     data_loaded <- TRUE
   } else {
-    # Fallback to targets if local
-    if (dir.exists("../_targets")) {
-      tar_config_set(store = "../_targets")
-      universe <- tar_read(universe)
-      metadata <- tar_read(metadata)
-      history <- tar_read(history)
-      data_loaded <- TRUE
+    # Robust fallback to targets
+    store_path <- NULL
+    possible_paths <- c("_targets", "../_targets", "../../_targets")
+    for (p in possible_paths) {
+      if (dir.exists(p)) {
+        store_path <- p
+        break
+      }
+    }
+    
+    if (!is.null(store_path) && requireNamespace("targets", quietly = TRUE)) {
+      tar_config_set(store = store_path)
+      try({
+        universe <- tar_read(universe)
+        metadata <- tar_read(metadata)
+        history <- tar_read(history)
+        data_loaded <- TRUE
+      }, silent = TRUE)
     }
   }
 }, error = function(e) {
@@ -199,7 +210,7 @@ We fetch daily price history from Yahoo Finance using `quantmod`.
 fetch_price_history("VUSA.L")
 ```
 
-```{r history-plot, echo=TRUE, message=FALSE, warning=FALSE}
+```{r history-plot, echo=TRUE, message=FALSE, warning=FALSE, eval=!is_ci}
 if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
   # Visualize Close Prices with Facets
   print(
@@ -221,7 +232,7 @@ if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TR
 
 We join the datasets and parse the AUM strings to analyze the relationship between Fund Size and Liquidity.
 
-```{r combined, echo=TRUE, message=FALSE, warning=FALSE}
+```{r combined, echo=TRUE, message=FALSE, warning=FALSE, eval=!is_ci}
 if (data_loaded && !is.null(history) && !is.null(metadata)) {
   # Join data
   avg_vol <- history %>%
