@@ -61,11 +61,13 @@ jobs:
             hist <- tar_read(history);
             
             # Filter to top 5 tickers to prevent OOM in vignette build
-            # Assuming "universe" has some order, or just take first 5
+            # universe has "ticker" and "isin"
             top_tickers <- head(uni$ticker, 5)
             
             uni_small <- uni %>% filter(ticker %in% top_tickers)
-            meta_small <- meta %>% filter(ticker %in% top_tickers)
+            top_isins <- uni_small$isin
+            
+            meta_small <- meta %>% filter(isin %in% top_isins)
             hist_small <- hist %>% filter(ticker %in% top_tickers)
             
             if(!dir.exists("inst/extdata")) dir.create("inst/extdata", recursive = TRUE);
