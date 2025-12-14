@@ -108,7 +108,7 @@ get_etf_universe <- function() {
 #| eval: true
 if (data_loaded && !is.null(universe)) {
   knitr::kable(head(universe))
-  print(str(universe))
+  print(universe)
 } else {
   print("Universe data not available in this build.")
 }
@@ -193,7 +193,7 @@ if (data_loaded && !is.null(metadata)) {
   cols <- intersect(cols, colnames(metadata))
   if (length(cols) > 0) {
     knitr::kable(head(metadata[, cols, drop=FALSE]))
-    print(str(metadata))
+    print(metadata)
   }
 } else {
   print("Metadata not available.")
@@ -222,10 +222,13 @@ if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TR
     theme_minimal() +
     theme(legend.position = "none")
   )
-  print(str(history))
-} else {
-  print("History plot not available.")
+  print(history)
 }
+```
+
+```{r history-plot-static, echo=FALSE, eval=is_ci}
+# Static fallback for CI
+knitr::include_graphics("history_plot.png")
 ```
 
 ## Combined Analysis
@@ -268,6 +271,10 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
 }
 ```
 
+```{r combined-plot-static, echo=FALSE, eval=is_ci}
+knitr::include_graphics("combined_plot.png")
+```
+
 ## Metadata
 
 ### Session Info
@@ -296,7 +303,7 @@ if (data_loaded) {
 
 We analyze the reproducibility pipeline metadata (runtime, memory, storage) if available.
 
-```{r targets-meta}
+```{r targets-meta, results='asis'}
 #| echo: false
 #| eval: true
 #| message: false
