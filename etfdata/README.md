@@ -50,6 +50,17 @@ history %>%
   theme(legend.position = "none")
 ```
 
+## JustETF Screener
+
+You can also fetch a live list of ETFs directly from the JustETF screener API, allowing you to filter by AUM (Assets Under Management) and TER (Total Expense Ratio).
+
+```r
+# Fetch ETFs with > £200m AUM and < 0.75% TER
+screener_data <- fetch_justetf_screener(min_aum_gbp = 200, max_ter = 0.75)
+
+print(head(screener_data))
+```
+
 ## Reproducibility with Nix
 
 This project is reproducible using [Nix](https://nixos.org/).
