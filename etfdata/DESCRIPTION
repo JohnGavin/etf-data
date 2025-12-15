@@ -12,11 +12,13 @@ Config/testthat/edition: 3
 Imports: 
     dplyr,
     httr2,
+    janitor,
     lubridate,
     magrittr,
     purrr,
     quantmod,
     readr,
+    rlang,
     rvest,
     stringr,
     tibble

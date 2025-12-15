@@ -4,17 +4,27 @@
 \alias{get_etf_universe}
 \title{Get ETF Universe}
 \usage{
-get_etf_universe()
+get_etf_universe(n = 20, live = FALSE, file = NULL)
+}
+\arguments{
+\item{n}{Integer. Maximum number of ETFs to return. Default is 20. Set to Inf for all.}
+
+\item{live}{Logical. If TRUE, attempts to fetch the latest universe from an external source (not yet implemented, returns cached data with warning).}
+
+\item{file}{Character. Path to a local CSV file to read the universe from. Overrides \code{live} and default cache.}
 }
 \value{
 A tibble with columns: ticker, name, isin, currency
 }
 \description{
-Retrieves the list of ETFs to track. Currently uses a static seed list.
+Retrieves the list of ETFs to track.
 }
 \examples{
 \dontrun{
-  get_etf_universe()
+  get_etf_universe() # Returns top 20
+  get_etf_universe(n = 5)
+  get_etf_universe(n = Inf) # Returns all
+  get_etf_universe(file = "my_etfs.csv")
 }
 
 }

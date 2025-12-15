@@ -252,7 +252,9 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
        combined <- bind_cols(combined, parse_aum(combined$aum_text))
     }
 
-    knitr::kable(head(combined %>% select(ticker, name, currency, aum_amount, aum_units, avg_daily_vol)))
+    cols_to_show <- c("ticker", "name", "currency", "aum_amount", "aum_units", "avg_daily_vol")
+    cols_to_show <- intersect(cols_to_show, colnames(combined))
+    knitr::kable(head(combined %>% select(all_of(cols_to_show))))
 
     if (requireNamespace("ggplot2", quietly = TRUE)) {
       # Plot AUM vs Volume
