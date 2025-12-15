@@ -63,9 +63,9 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 ### Running
 To drop into a reproducible R environment with all dependencies:
 ```bash
-nix-shell
+nix-shell default.nix
 ```
-Then start R to run the examples:
+Then run the examples (e.g. print the universe):
 ```bash
-R
+Rscript -e "library(etfdata); print(get_etf_universe(n=5))"
 ```
