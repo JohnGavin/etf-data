@@ -2,13 +2,12 @@
 devtools::load_all("finance/data/etfs/etfdata")
 library(ggplot2)
 library(dplyr)
-library(targets)
 
-# Load data
-tar_config_set(store = "finance/data/etfs/etfdata/_targets")
-history <- tar_read(history)
-universe <- tar_read(universe)
-metadata <- tar_read(metadata)
+# Load data from updated snapshot
+snap <- readRDS("finance/data/etfs/etfdata/inst/extdata/vignette_data.rds")
+universe <- snap$universe
+metadata <- snap$metadata
+history <- snap$history
 
 # 1. History Plot
 p1 <- history %>%
