@@ -49,3 +49,23 @@ history %>%
   theme_minimal() +
   theme(legend.position = "none")
 ```
+
+## Reproducibility with Nix
+
+This project is reproducible using [Nix](https://nixos.org/).
+
+### Installation
+We recommend the [Determinate Systems Nix Installer](https://github.com/DeterminateSystems/nix-installer):
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh
+```
+
+### Running
+To drop into a reproducible R environment with all dependencies:
+```bash
+nix-shell
+```
+Then start R to run the examples:
+```bash
+R
+```
