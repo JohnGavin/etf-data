@@ -4,6 +4,19 @@ format: html
 filters:
   - webr
 engine: knitr
+webr:
+  packages:
+    - dplyr
+    - ggplot2
+    - tidyr
+    - stringr
+    - tibble
+    - httr2
+    - janitor
+    - readr
+  repos:
+    - https://repo.r-wasm.org/
+    - https://johngavin.r-universe.dev
 vignette: >
   %\VignetteIndexEntry{etfdata in WebAssembly (WASM)}
   %\VignetteEngine{quarto::html}
@@ -21,22 +34,13 @@ You can run R code directly below. Press "Run Code" to execute.
 version$version.string
 ```
 
-## Installing Dependencies
+## Installing etfdata
 
-We need to install `etfdata` dependencies from the WASM package repository.
+Dependencies are preloaded. We now attempt to install `etfdata`.
 
 ```{webr-r}
-#| caption: "Install Packages"
-# Install dependencies available in WASM
-install.packages(c("dplyr", "ggplot2", "tidyr"))
-
+#| caption: "Install etfdata"
 # Install 'etfdata' from R-Universe (binary required)
-# We set the repository option so install.packages can find it.
-options(repos = c(
-  etfdata = "https://johngavin.r-universe.dev",
-  CRAN = "https://repo.r-wasm.org/"
-))
-
 tryCatch({
   install.packages("etfdata")
 }, warning = function(w) {
