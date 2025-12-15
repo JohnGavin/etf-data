@@ -1,0 +1,83 @@
+---
+title: "etfdata in WebAssembly (WASM) with WebR"
+output: 
+  html_document:
+    self_contained: true
+    css: "../../../styles.css"
+vignette: >
+  %\VignetteIndexEntry{etfdata in WebAssembly (WASM) with WebR}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette demonstrates how to use the `etfdata` package within a WebAssembly (WASM) environment powered by WebR. WebR brings R directly to the browser, enabling interactive data analysis without server-side R.
+
+**Note:** The `etfdata` package relies on external data sources and web scraping (via `httr2` and `rvest`). While WebR supports a wide range of R packages, functionalities requiring direct network access or specific system libraries might have limitations or require workarounds when executed purely client-side in the browser.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = FALSE)
+```
+
+## Initializing WebR
+
+First, we load the `webr` package. This step initializes the WebR runtime in your browser.
+
+```{webr-r}
+library(webr)
+# Ensure webr is loaded and initialized
+webr::install_webr()
+```
+
+## Installing `etfdata`
+
+For `etfdata` and its dependencies (like `httr2`, `rvest`, `xml2`) to work in WebR, they need to be compiled to WebAssembly. Packages available on `repo.r-wasm.org` can be installed directly. For custom or GitHub packages, they must be made available on a WASM-enabled R-Universe or installed from source (which can be complex).
+
+Assuming `etfdata` is available on a WASM-compatible R-Universe (e.g., `https://johngavin.r-universe.dev`), you would install it as follows:
+
+```{webr-r}
+# Set up a WASM-compatible R-Universe for etfdata (placeholder URL)
+webr::install(
+  "etfdata", 
+  repos = c("https://johngavin.r-universe.dev", webr::webr_repos()),
+  dependencies = TRUE
+)
+
+# If etfdata is not yet on R-Universe for WASM, this step will fail.
+# For now, we proceed assuming it's loaded.
+```
+
+## Using `etfdata` in WebR
+
+Once `etfdata` is installed and loaded, you can use its functions.
+
+```{webr-r}
+# Load the package
+library(etfdata)
+
+# Get a sample ETF universe
+universe <- get_etf_universe(n = 5)
+print(universe)
+```
+
+### Fetching Metadata (Limitations)
+
+Functions like `fetch_etf_metadata()` perform web requests. In WebR, client-side network requests are subject to browser security policies (CORS). Direct scraping might be blocked or require specific browser permissions.
+
+```{webr-r}
+# Attempt to fetch metadata for a sample ISIN
+# This might fail due to CORS policies in the browser's WebR environment.
+tryCatch({
+  sample_isin <- universe$isin[1]
+  metadata <- fetch_etf_metadata(sample_isin)
+  print(metadata)
+}, error = function(e) {
+  message("Fetching metadata failed in WebR: ", e$message)
+  message("This might be due to browser CORS policies preventing direct scraping.")
+})
+```
+
+## Session Info
+
+```{webr-r}
+sessionInfo()
+```
