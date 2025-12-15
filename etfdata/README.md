@@ -29,7 +29,15 @@ universe <- get_etf_universe()
 # 2. Fetch metadata (AUM, TER, etc.) for the first few ETFs to identify top funds
 # (In a real scenario, you might fetch metadata for the whole universe)
 sample_isins <- head(universe$isin, 5)
-metadata <- fetch_etf_metadata(sample_isins) # Vectorized fetch not yet implemented, loop or map needed in practice
+metadata <- fetch_etf_metadata(sample_isins) 
+
+# Join metadata to the universe subset
+detailed_universe <- universe %>%
+  filter(isin %in% sample_isins) %>%
+  left_join(metadata, by = "isin")
+
+print(detailed_universe)
+
 # For demonstration, we'll assume we identified top tickers
 top_tickers <- c("VUSA.L", "CSP1.L", "INRG.L", "EQQQ.L")
 
@@ -78,5 +86,15 @@ nix-shell default.nix
 ```
 Then run the examples (e.g. print the universe):
 ```bash
-Rscript -e "library(etfdata); print(get_etf_universe(n=5))"
+Rscript -e "library(etfdata); packageVersion('etfdata'); str(get_etf_universe())"
+```
+
+Expected output:
+```
+[1] ‘0.0.0.9000’
+tibble [20 × 4] (S3: tbl_df/tbl/data.frame)
+ $ ticker  : chr [1:20] "VUSA.L" "CSPX.L" "INRG.L" "EQQQ.L" ...
+ $ name    : chr [1:20] "Vanguard S&P 500 UCITS ETF" "iShares Core S&P 500 UCITS ETF" ...
+ $ isin    : chr [1:20] "IE00B3XXRP09" "IE00B5BMR087" "IE00B1XNHC34" "IE0032077012" ...
+ $ currency: chr [1:20] "GBP" "GBP" "GBP" "GBP" ...
 ```
