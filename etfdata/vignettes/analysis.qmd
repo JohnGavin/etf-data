@@ -275,9 +275,9 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
 knitr::include_graphics("combined_plot.png")
 ```
 
-## Metadata
+# Reproducibility & Metadata
 
-### Session Info
+## Session Info
 
 ::: {.callout-note collapse="true"}
 ## Session Info
@@ -286,23 +286,26 @@ sessionInfo()
 ```
 :::
 
-### Data Structures
+## Data Structures
 
+::: {.callout-note collapse="true"}
+## Data Structures
 ```{r data-sizes}
 if (data_loaded) {
   print("Universe:")
-  str(universe)
+  print(universe)
   print("Metadata:")
-  str(metadata)
+  print(metadata)
   print("History:")
-  str(history)
+  print(history)
 }
 ```
+:::
 
 ## Targets Metadata
 
-We analyze the reproducibility pipeline metadata (runtime, memory, storage) if available.
-
+::: {.callout-note collapse="true"}
+## Targets Metadata
 ```{r targets-meta, results='asis'}
 #| echo: false
 #| eval: true
@@ -326,7 +329,6 @@ if (requireNamespace("targets", quietly = TRUE) &&
   
   if (!is.null(store_path)) {
     # Set config for this session
-    # We use try() to avoid stopping if config is locked or issues arise
     try(tar_config_set(store = store_path), silent = TRUE)
     
     # 1. Meta Table
@@ -350,31 +352,31 @@ if (requireNamespace("targets", quietly = TRUE) &&
         meta_disp <- meta_disp[, c("name", "bytes_formatted", "seconds", "time", "type")]
         
         if (nrow(meta_disp) > 0) {
-          cat("### Pipeline Metadata (Top 5 by Size)\n")
-          print(knitr::kable(meta_disp, caption = "Targets Pipeline Metadata"))
+          print(knitr::kable(meta_disp, caption = "Targets Pipeline Metadata (Top 5)"))
         }
       }
     }, silent = TRUE)
     
-    # 2. Network Visualization
-    # Skip interactive widget generation in CI to avoid potential rendering issues
+    # 2. Pipeline Visualization
+    cat("\n### Pipeline Network\n")
     if (!is_ci) {
-      cat("### Pipeline Network\n")
       tryCatch({
-        # visNetwork returns a widget, we need to print it or let it return for rendering
         vn <- tar_visnetwork(store = store_path, targets_only = TRUE)
         print(vn)
       }, error = function(e) {
         message("Could not generate visNetwork: ", e$message)
       })
     } else {
-      cat("### Pipeline Network\n")
-      message("Interactive network visualization skipped in CI environment.")
+      # Fallback: Print Manifest Table
+      try({
+        man <- tar_manifest(store = store_path, fields = c("name", "command"))
+        print(knitr::kable(head(man, 10), caption = "Pipeline Manifest (CI Fallback)"))
+      }, silent = TRUE)
     }
     
   } else {
     message("Targets store not found. Checked: ", paste(possible_paths, collapse = ", "))
-    message("Current dir: ", getwd())
   }
 }
 ```
+:::
