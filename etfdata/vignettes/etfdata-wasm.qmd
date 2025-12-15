@@ -70,3 +70,21 @@ ggplot(df, aes(x, y)) +
   theme_minimal() +
   labs(title = "Interactive Plot in WebR")
 ```
+
+## JustETF Screener
+
+If the package is installed and internet access is permitted, you can query the JustETF API.
+
+```{webr-r}
+#| caption: "JustETF Screener (Requires Package)"
+if (requireNamespace("etfdata", quietly = TRUE)) {
+  library(etfdata)
+  # Fetch ETFs with > 200m GBP AUM
+  try({
+    screener <- fetch_justetf_screener(min_aum_gbp = 200)
+    print(head(screener))
+  })
+} else {
+  print("etfdata package not available in this WASM session.")
+}
+```
