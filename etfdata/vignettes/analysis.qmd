@@ -107,7 +107,7 @@ get_etf_universe <- function() {
 #| echo: false
 #| eval: true
 if (data_loaded && !is.null(universe)) {
-  knitr::kable(head(universe))
+  knitr::kable(head(universe, 10))
   print(universe)
 } else {
   print("Universe data not available in this build.")
@@ -192,7 +192,7 @@ if (data_loaded && !is.null(metadata)) {
   cols <- c("isin", "aum_text", "ter_text", "replication")
   cols <- intersect(cols, colnames(metadata))
   if (length(cols) > 0) {
-    knitr::kable(head(metadata[, cols, drop=FALSE]))
+    knitr::kable(head(metadata[, cols, drop=FALSE], 10))
     print(metadata)
   }
 } else {
@@ -259,10 +259,10 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
       print(
         ggplot(combined, aes(x = aum_amount, y = avg_daily_vol)) +
           geom_point() +
-          scale_x_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+          scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
           scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
           labs(title = "ETF Size vs Liquidity",
-               x = "Assets Under Management (AUM)",
+               x = "Assets Under Management (AUM in GBP)",
                y = "Average Daily Volume") +
           theme_minimal()
       )
