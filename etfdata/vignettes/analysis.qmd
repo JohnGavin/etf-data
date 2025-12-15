@@ -257,7 +257,7 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
     if (requireNamespace("ggplot2", quietly = TRUE)) {
       # Plot AUM vs Volume
       print(
-        ggplot(combined, aes(x = aum_amount, y = avg_daily_vol)) +
+        ggplot(combined, aes(x = total_amount, y = avg_daily_vol)) +
           geom_point() +
           scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
           scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
@@ -279,33 +279,33 @@ knitr::include_graphics("combined_plot.png")
 
 ## Session Info
 
-::: {.callout-note collapse="true"}
-## Session Info
+<details>
+<summary>Click to expand Session Info</summary>
 ```{r session-info}
 sessionInfo()
 ```
-:::
+</details>
 
 ## Data Structures
 
-::: {.callout-note collapse="true"}
-## Data Structures
+<details>
+<summary>Click to expand Data Structures</summary>
 ```{r data-sizes}
 if (data_loaded) {
   print("Universe:")
-  print(head(universe))
+  print(head(universe, 10))
   print("Metadata:")
-  print(head(metadata))
+  print(head(metadata, 10))
   print("History:")
-  print(head(history))
+  print(head(history, 10))
 }
 ```
-:::
+</details>
 
 ## Targets Metadata
 
-::: {.callout-note collapse="true"}
-## Targets Metadata
+<details>
+<summary>Click to expand Targets Metadata</summary>
 ```{r targets-meta, results='asis'}
 #| echo: false
 #| eval: true
@@ -316,10 +316,9 @@ if (data_loaded) {
 if (requireNamespace("targets", quietly = TRUE) && 
     requireNamespace("visNetwork", quietly = TRUE)) {
   
-  # Robust path finding for _targets
+  # Robust path finding for _targets and _targets.R
   store_path <- NULL
   possible_paths <- c("_targets", "../_targets", "../../_targets")
-  
   for (p in possible_paths) {
     if (dir.exists(p)) {
       store_path <- p
@@ -327,9 +326,21 @@ if (requireNamespace("targets", quietly = TRUE) &&
     }
   }
   
+  script_path <- NULL
+  possible_scripts <- c("_targets.R", "../_targets.R", "../../_targets.R")
+  for (s in possible_scripts) {
+    if (file.exists(s)) {
+      script_path <- s
+      break
+    }
+  }
+  
   if (!is.null(store_path)) {
     # Set config for this session
     try(tar_config_set(store = store_path), silent = TRUE)
+    if (!is.null(script_path)) {
+      try(tar_config_set(script = script_path), silent = TRUE)
+    }
     
     # 1. Meta Table
     try({
@@ -368,10 +379,14 @@ if (requireNamespace("targets", quietly = TRUE) &&
       })
     } else {
       # Fallback: Print Manifest Table
-      try({
-        man <- tar_manifest(fields = c("name", "command"))
-        print(knitr::kable(head(man, 10), caption = "Pipeline Manifest (CI Fallback)"))
-      })
+      if (!is.null(script_path)) {
+        try({
+          man <- tar_manifest(fields = c("name", "command"))
+          print(knitr::kable(head(man, 10), caption = "Pipeline Manifest (CI Fallback)"))
+        })
+      } else {
+        message("Pipeline manifest skipped (script not found in CI).")
+      }
     }
     
   } else {
@@ -379,4 +394,4 @@ if (requireNamespace("targets", quietly = TRUE) &&
   }
 }
 ```
-:::
+</details>

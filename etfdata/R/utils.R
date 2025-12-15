@@ -32,7 +32,8 @@ parse_aum <- function(aum_text) {
         aum_units == "m" ~ 1e6,
         aum_units == "bn" ~ 1e9,
         TRUE ~ 1
-      )
+      ),
+      total_amount = aum_amount * aum_units_amount
     ) %>%
     dplyr::select(-raw_amount)
   
