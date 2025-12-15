@@ -293,11 +293,11 @@ sessionInfo()
 ```{r data-sizes}
 if (data_loaded) {
   print("Universe:")
-  print(universe)
+  print(head(universe))
   print("Metadata:")
-  print(metadata)
+  print(head(metadata))
   print("History:")
-  print(history)
+  print(head(history))
 }
 ```
 :::
@@ -371,7 +371,7 @@ if (requireNamespace("targets", quietly = TRUE) &&
       try({
         man <- tar_manifest(store = store_path, fields = c("name", "command"))
         print(knitr::kable(head(man, 10), caption = "Pipeline Manifest (CI Fallback)"))
-      }, silent = TRUE)
+      })
     }
     
   } else {
