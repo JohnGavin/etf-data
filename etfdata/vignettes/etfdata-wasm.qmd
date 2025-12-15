@@ -30,12 +30,18 @@ We need to install `etfdata` dependencies from the WASM package repository.
 # Install dependencies available in WASM
 install.packages(c("dplyr", "ggplot2", "tidyr"))
 
-# Note: 'etfdata' requires compilation. 
-# Unless a pre-compiled WASM binary is hosted (e.g. on R-Universe), 
-# installing from source will fail if it needs system libs (like curl/xml2).
-# This is a demonstration of the attempt:
+# Install 'etfdata' from R-Universe (binary required)
+# We set the repository option so install.packages can find it.
+options(repos = c(
+  etfdata = "https://johngavin.r-universe.dev",
+  CRAN = "https://repo.r-wasm.org/"
+))
+
 tryCatch({
-  install.packages("etfdata", repos = "https://johngavin.r-universe.dev")
+  install.packages("etfdata")
+}, warning = function(w) {
+  message("Warning during installation: ", w$message)
+  message("Note: etfdata WASM binary might not be available yet on R-Universe.")
 }, error = function(e) {
   message("etfdata could not be installed in WASM: ", e$message)
 })
