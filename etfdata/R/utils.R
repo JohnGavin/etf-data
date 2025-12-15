@@ -10,6 +10,7 @@
 #' @importFrom stringr str_match str_remove_all
 #' @importFrom dplyr mutate case_when
 #' @importFrom tibble tibble
+#' @importFrom rlang .data
 #' @examples
 #' parse_aum("GBP 100,642 m")
 parse_aum <- function(aum_text) {
@@ -27,15 +28,15 @@ parse_aum <- function(aum_text) {
   
   df <- df %>%
     dplyr::mutate(
-      aum_amount = as.numeric(stringr::str_remove_all(raw_amount, ",")),
+      aum_amount = as.numeric(stringr::str_remove_all(.data$raw_amount, ",")),
       aum_units_amount = dplyr::case_when(
-        aum_units == "m" ~ 1e6,
-        aum_units == "bn" ~ 1e9,
+        .data$aum_units == "m" ~ 1e6,
+        .data$aum_units == "bn" ~ 1e9,
         TRUE ~ 1
       ),
-      total_amount = aum_amount * aum_units_amount
+      total_amount = .data$aum_amount * .data$aum_units_amount
     ) %>%
-    dplyr::select(-raw_amount)
+    dplyr::select(-.data$raw_amount)
   
   return(df)
 }
