@@ -32,10 +32,10 @@ combined <- universe %>%
 
 p2 <- ggplot(combined, aes(x = aum_amount, y = avg_daily_vol)) +
   geom_point() +
-  scale_x_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+  scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
   scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
   labs(title = "ETF Size vs Liquidity",
-       x = "Assets Under Management (AUM)",
+       x = "Assets Under Management (AUM in GBP)",
        y = "Average Daily Volume") +
   theme_minimal()
 
