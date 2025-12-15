@@ -108,7 +108,7 @@ get_etf_universe <- function() {
 #| eval: true
 if (data_loaded && !is.null(universe)) {
   knitr::kable(head(universe, 10))
-  print(universe)
+  print(head(universe, 10))
 } else {
   print("Universe data not available in this build.")
 }
@@ -193,7 +193,7 @@ if (data_loaded && !is.null(metadata)) {
   cols <- intersect(cols, colnames(metadata))
   if (length(cols) > 0) {
     knitr::kable(head(metadata[, cols, drop=FALSE], 10))
-    print(metadata)
+    print(head(metadata, 10))
   }
 } else {
   print("Metadata not available.")
@@ -369,7 +369,7 @@ if (requireNamespace("targets", quietly = TRUE) &&
     } else {
       # Fallback: Print Manifest Table
       try({
-        man <- tar_manifest(store = store_path, fields = c("name", "command"))
+        man <- tar_manifest(fields = c("name", "command"))
         print(knitr::kable(head(man, 10), caption = "Pipeline Manifest (CI Fallback)"))
       })
     }
