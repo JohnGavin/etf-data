@@ -2,7 +2,7 @@
 #'
 #' Retrieves the list of ETFs to track.
 #'
-#' @param n Integer. Maximum number of ETFs to return. Default is Inf (all).
+#' @param n Integer. Maximum number of ETFs to return. Default is 20. Set to Inf for all.
 #' @param live Logical. If TRUE, attempts to fetch the latest universe from an external source (not yet implemented, returns cached data with warning).
 #' @param file Character. Path to a local CSV file to read the universe from. Overrides `live` and default cache.
 #'
@@ -11,13 +11,15 @@
 #'
 #' @examples
 #' \dontrun{
+#'   get_etf_universe() # Returns top 20
 #'   get_etf_universe(n = 5)
+#'   get_etf_universe(n = Inf) # Returns all
 #'   get_etf_universe(file = "my_etfs.csv")
 #' }
 #'
 #' @importFrom readr read_csv
 #' @importFrom utils head
-get_etf_universe <- function(n = Inf, live = FALSE, file = NULL) {
+get_etf_universe <- function(n = 20, live = FALSE, file = NULL) {
   
   if (!is.null(file)) {
     if (file.exists(file)) {
