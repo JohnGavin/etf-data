@@ -29,5 +29,8 @@ Suggests:
     targets,
     quarto,
     visNetwork,
-    DiagrammeR
+    DiagrammeR,
+    shinylive,
+    DT,
+    htmltools
 VignetteBuilder: knitr, quarto

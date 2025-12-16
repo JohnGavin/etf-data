@@ -1,0 +1,162 @@
+---
+title: "ETF Data Dashboard (Shinylive)"
+format: html
+filters:
+  - shinylive
+shinylive:
+  resources:
+    - shinylive-sw.js
+  packages:
+    - shiny
+    - dplyr
+    - ggplot2
+    - DT
+    - htmltools
+    - etfdata
+  repos:
+    - https://repo.r-wasm.org/
+    - https://johngavin.r-universe.dev
+vignette: >
+  %\VignetteIndexEntry{ETF Data Dashboard (Shinylive)}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette presents an interactive Shiny dashboard, powered by Shinylive and WebR, allowing you to explore and filter ETF data directly in your browser. The data is sourced from the `etfdata` package.
+
+```{r setup, include=FALSE}
+# These libraries are implicitly loaded by shinylive configuration
+# library(shiny)
+# library(dplyr)
+# library(ggplot2)
+# library(DT)
+# library(etfdata)
+```
+
+```{shinylive-r}
+#| standalone: true
+#| viewerHeight: 800
+
+# UI definition
+ui <- htmltools::tagList(
+  shiny::fluidPage(
+    titlePanel("ETF Universe Explorer"),
+    sidebarLayout(
+      sidebarPanel(
+        p("Explore the universe of ETFs provided by the etfdata package."),
+        selectInput("currencyFilter",
+                    "Filter by Currency:",
+                    choices = c("All", "GBP", "USD", "EUR"),
+                    selected = "All"),
+        sliderInput("minAUM",
+                    "Minimum AUM (millions):",
+                    min = 0,
+                    max = 10000,
+                    value = 0,
+                    step = 100),
+        actionButton("fetchLive", "Fetch Live JustETF Data")
+      ),
+      mainPanel(
+        h3("Filtered ETF Data"),
+        DT::dataTableOutput("etfTable"),
+        h3("AUM vs TER (Placeholder Plot)"),
+        plotOutput("aumTerPlot")
+      )
+    )
+  )
+)
+
+# Server logic
+server <- function(input, output, session) {
+
+  # Load static universe data
+  universe_data <- reactiveVal(NULL)
+
+  observe({
+    req(input$currencyFilter)
+    
+    # Use cached data from etfdata package
+    static_universe <- etfdata::get_etf_universe(n = Inf) %>%
+      mutate(currency = as.character(currency)) # Ensure currency is character for filtering
+    
+    if (input$currencyFilter != "All") {
+      static_universe <- static_universe %>%
+        filter(currency == input$currencyFilter)
+    }
+    universe_data(static_universe)
+  })
+
+  # Event for fetching live data
+  observeEvent(input$fetchLive, {
+    showNotification("Attempting to fetch live data... This may take a moment or fail due to CORS/API limits.", duration = 5)
+    
+    fetched_data <- tryCatch({
+      # Fetch from JustETF API
+      # min_aum_gbp and max_ter are default in fetch_justetf_screener()
+      # Adjust filters as needed for the UI
+      etfdata::fetch_justetf_screener(min_aum_gbp = input$minAUM) # Placeholder, needs TER input
+    }, error = function(e) {
+      message("Error fetching live data: ", e$message)
+      showNotification(paste("Error fetching live data:", e$message), type = "error", duration = 10)
+      return(NULL)
+    }, warning = function(w) {
+      message("Warning fetching live data: ", w$message)
+      showNotification(paste("Warning fetching live data:", w$message), type = "warning", duration = 10)
+      return(NULL)
+    })
+    
+    if (!is.null(fetched_data) && nrow(fetched_data) > 0) {
+      # For now, just display fetched data. In a real app, you might merge or replace.
+      universe_data(fetched_data)
+      showNotification("Live data fetched successfully!", type = "message", duration = 5)
+    } else {
+      showNotification("Failed to fetch live data or no data matched criteria.", type = "warning", duration = 5)
+    }
+  })
+
+  output$etfTable <- DT::renderDataTable({
+    data <- universe_data()
+    req(data)
+    data %>%
+      filter(aum_num_numeric_representation >= input$minAUM * 1e6) %>% # Assuming aum_num_numeric_representation from screener
+      select(ticker, name, currency, fund_size, ter) %>%
+      DT::datatable(options = list(pageLength = 10))
+  })
+
+  output$aumTerPlot <- renderPlot({
+    data <- universe_data()
+    req(data)
+    
+    # Placeholder: Assuming combined data with aum_num and ter_num
+    # This plot will only work if live data is fetched or if package has processed data
+    # that includes aum_num and ter_num.
+    plot_data <- data %>%
+      filter(!is.na(aum_num) & !is.na(ter_num)) %>%
+      filter(aum_num >= input$minAUM) # Match UI filter
+
+    if (nrow(plot_data) > 0) {
+        ggplot(plot_data, aes(x = aum_num, y = ter_num)) +
+        geom_point(aes(color = currency), alpha = 0.7) +
+        scale_x_log10(labels = scales::label_number(suffix = "M", scale_cut = scales::cut_short_scale())) +
+        scale_y_log10(labels = scales::label_percent(scale = 1)) +
+        labs(title = "AUM vs TER", x = "Assets Under Management", y = "Total Expense Ratio (%)") +
+        theme_minimal()
+    } else {
+        ggplot() +
+        annotate("text", x = 0.5, y = 0.5, label = "No data to plot") +
+        theme_void()
+    }
+  })
+}
+
+shinyApp(ui, server)
+```
+
+## Session Info
+
+<details>
+<summary>Click to expand Session Info</summary>
+```{r session-info}
+sessionInfo()
+```
+</details>
