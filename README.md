@@ -1,1 +1,1 @@
-See [./etfdata] for the R package for this project. 
+See ./etfdata for the R package for this project. 
