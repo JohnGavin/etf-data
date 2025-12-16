@@ -16,7 +16,7 @@ webr:
     - readr
   repos:
     - https://repo.r-wasm.org/
-    - https://johngavin.r-universe.dev
+    - https://johngavin.github.io/etf-data/
 vignette: >
   %\VignetteIndexEntry{etfdata in WebAssembly (WASM)}
   %\VignetteEngine{quarto::html}
@@ -36,16 +36,15 @@ version$version.string
 
 ## Installing etfdata
 
-Dependencies are preloaded. We now attempt to install `etfdata`.
+Dependencies are preloaded. We now install `etfdata` from the package's own WASM repository (hosted on GitHub Pages).
 
 ```{webr-r}
 #| caption: "Install etfdata"
-# Install 'etfdata' from R-Universe (binary required)
+# Install 'etfdata' from our GitHub Pages WASM repo
 tryCatch({
   install.packages("etfdata")
 }, warning = function(w) {
   message("Warning during installation: ", w$message)
-  message("Note: etfdata WASM binary might not be available yet on R-Universe.")
 }, error = function(e) {
   message("etfdata could not be installed in WASM: ", e$message)
 })
