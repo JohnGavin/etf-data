@@ -52,12 +52,6 @@ jobs:
           mkdir -p _site
           cp -r etfdata/docs/* _site/
 
-      - name: Build WASM Package
-        uses: r-wasm/actions/build-rwasm@v1
-        with:
-          packages: ./etfdata
-          repo-path: _site
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
