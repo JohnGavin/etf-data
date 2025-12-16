@@ -32,6 +32,13 @@ jobs:
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
+      - name: Install Shinylive Quarto Extension
+        run: |
+          quarto install extension shinylive --no-prompt
+          # Shinylive uses 'quarto-shinylive' or 'shinylive' as extension name.
+          # The above should install 'shinylive'.
+
+
       - name: Install dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
