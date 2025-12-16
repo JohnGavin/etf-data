@@ -1,6 +1,6 @@
 # etfdata
 
-<!-- badges: start -->
+<!-- badges: start  -->
 <!-- badges: end -->
 
 The goal of `etfdata` is to provide tools to fetch, clean, and store historical and metadata for European bond and equity index ETFs (UCITS) listed on the London Stock Exchange.
