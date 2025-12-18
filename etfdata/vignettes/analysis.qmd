@@ -263,12 +263,21 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
        combined <- bind_cols(combined, parse_aum(combined$aum_text))
     }
 
-    cols_to_show <- c("ticker", "name", "currency", "aum_amount", "aum_units", "avg_daily_vol")
+    # Parse TER
+    if (requireNamespace("readr", quietly = TRUE) && requireNamespace("stringr", quietly = TRUE)) {
+      combined <- combined %>%
+        mutate(
+          ter_val = readr::parse_number(ter_text),
+          ter_units = stringr::str_extract(ter_text, "[%]") 
+        )
+    }
+
+    cols_to_show <- c("ticker", "name", "currency", "aum_amount", "aum_units", "avg_daily_vol", "ter_val")
     cols_to_show <- intersect(cols_to_show, colnames(combined))
     knitr::kable(head(combined %>% select(all_of(cols_to_show))))
 
     if (requireNamespace("ggplot2", quietly = TRUE)) {
-      # Plot AUM vs Volume
+      # Plot 1: AUM vs Volume
       print(
         ggplot(combined, aes(x = total_amount, y = avg_daily_vol)) +
           geom_point() +
@@ -279,6 +288,19 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
                y = "Average Daily Volume") +
           theme_minimal()
       )
+      
+      # Plot 2: AUM vs TER
+      if ("ter_val" %in% colnames(combined) && !all(is.na(combined$ter_val))) {
+        print(
+          ggplot(combined, aes(x = total_amount, y = ter_val)) +
+            geom_point() +
+            scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
+            labs(title = "ETF Size vs Cost (TER)",
+                 x = "Assets Under Management (AUM in GBP)",
+                 y = "Total Expense Ratio (%)") +
+            theme_minimal()
+        )
+      }
     }
   }
 }

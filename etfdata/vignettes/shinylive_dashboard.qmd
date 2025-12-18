@@ -1,6 +1,8 @@
 ---
 title: "ETF Data Dashboard (Shinylive)"
 format: html
+filters:
+  - shinylive
 shinylive:
   resources:
     - shinylive-sw.js
