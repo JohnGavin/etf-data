@@ -2,22 +2,22 @@
 % Please edit documentation in R/fetch_etf_metadata.R
 \name{fetch_etf_metadata}
 \alias{fetch_etf_metadata}
-\title{Fetch ETF Metadata from JustETF}
+\title{Fetch ETF Metadata from Yahoo Finance API}
 \usage{
-fetch_etf_metadata(isin)
+fetch_etf_metadata(symbol)
 }
 \arguments{
-\item{isin}{Character string. The ISIN of the ETF (e.g., "IE00B3XXRP09").}
+\item{symbol}{Character string. The Yahoo Finance ticker symbol of the ETF (e.g., "VUSA.L").}
 }
 \value{
-A tibble with metadata columns.
+A tibble with metadata columns. Returns an empty tibble with the symbol if fetching fails.
 }
 \description{
-Scrapes metadata (AUM, TER, etc.) for a given ETF ISIN from JustETF.
+Fetches metadata (AUM, TER, etc.) for a given ETF ticker from the Yahoo Finance API.
 }
 \examples{
 \dontrun{
-  fetch_etf_metadata("IE00B3XXRP09")
+  fetch_etf_metadata("VUSA.L")
 }
 
 }

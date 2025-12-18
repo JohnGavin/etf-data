@@ -13,6 +13,7 @@ Imports:
     dplyr,
     httr2,
     janitor,
+    logger,
     lubridate,
     magrittr,
     purrr,
@@ -21,7 +22,8 @@ Imports:
     rlang,
     rvest,
     stringr,
-    tibble
+    tibble,
+    tidyquant
 Suggests: 
     ggplot2,
     knitr,

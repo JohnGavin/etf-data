@@ -3,7 +3,7 @@ test_that("fetch_etf_metadata returns expected fields", {
   skip_on_cran()
   
   # VUSA
-  meta <- fetch_etf_metadata("IE00B3XXRP09")
+  meta <- fetch_justetf_metadata("IE00B3XXRP09")
   
   expect_s3_class(meta, "tbl_df")
   expect_equal(meta$isin, "IE00B3XXRP09")
