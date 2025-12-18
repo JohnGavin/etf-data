@@ -24,7 +24,6 @@ webr:
     - etfdata
   repos:
     - https://repo.r-wasm.org/
-    - https://johngavin.r-universe.dev
 vignette: >
   %\VignetteIndexEntry{etfdata in WebAssembly (WASM)}
   %\VignetteEngine{quarto::html}

@@ -28,5 +28,10 @@ setwd("llm/finance/data/etfs")
 # - Vignette compilation (analysis.qmd, etfdata-wasm.qmd) verified during partial check run.
 # - Shinylive vignette filter restored for deployment functionality.
 
-# 4. Deployment
-# - Committing and pushing to GitHub.
+# 5. Fix Missing Plot & WASM Errors
+# - Regenerated `inst/extdata/vignette_data.rds` using local targets pipeline to ensure `ter_text` is present for the new plot.
+# - Removed `johngavin.r-universe.dev` from `etfdata-wasm.qmd` repos to fix `PACKAGES.rds` error in WebR.
+# - Confirmed `shinylive` filter was restored in previous commit to fix code display issue.
+
+# 6. Deployment
+# - Committing updated snapshot and vignette fix.
