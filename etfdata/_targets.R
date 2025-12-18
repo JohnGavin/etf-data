@@ -4,7 +4,7 @@ library(tarchetypes)
 
 # Set target options:
 tar_option_set(
-  packages = c("etfdata", "tibble", "dplyr", "purrr"),
+  packages = c("etfdata", "tibble", "dplyr", "purrr", "lubridate"),
   format = "rds"
 )
 
@@ -17,15 +17,15 @@ list(
   ),
   
   # 2. Fetch Metadata (Map over ISINs)
-  # We use dynamic branching to fetch metadata for each ETF individually
+  # Using JustETF scraping
   tar_target(
     metadata,
-    fetch_etf_metadata(universe$isin),
+    fetch_justetf_metadata(universe$isin),
     pattern = map(universe)
   ),
   
   # 3. Fetch History (Map over Tickers)
-  # Dynamic branching for history
+  # Using Yahoo Finance
   tar_target(
     history,
     fetch_price_history(universe$ticker),
