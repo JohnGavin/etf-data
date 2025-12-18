@@ -22,7 +22,7 @@ r_pkgs <- c(
   # Documentation
   "pkgdown", "quarto", "visNetwork", # Added quarto R package and visNetwork
   # Development
-  "devtools", "usethis", "testthat", "lintr", "languageserver"
+  "devtools", "usethis", "testthat", "lintr", "languageserver", "yahoofinancer"
 )
 
 # System packages
