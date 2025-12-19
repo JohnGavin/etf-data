@@ -33,5 +33,9 @@ setwd("llm/finance/data/etfs")
 # - Removed `johngavin.r-universe.dev` from `etfdata-wasm.qmd` repos to fix `PACKAGES.rds` error in WebR.
 # - Confirmed `shinylive` filter was restored in previous commit to fix code display issue.
 
-# 6. Deployment
-# - Committing updated snapshot and vignette fix.
+# 6. Final Fixes
+# - Added `vignette_snapshot` target to `_targets.R` to automate `vignette_data.rds` generation.
+# - Fixed `shinylive_dashboard.qmd` YAML: moved `resources: - shinylive-sw.js` to `format: html` to correct Service Worker scope/registration.
+
+# 7. Deployment
+# - Committing and pushing final fixes.

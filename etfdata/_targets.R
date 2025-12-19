@@ -30,5 +30,19 @@ list(
     history,
     fetch_price_history(universe$ticker),
     pattern = map(universe)
+  ),
+  
+  # 4. Save Vignette Data (Snapshot)
+  tar_target(
+    vignette_snapshot,
+    {
+      if(!dir.exists("inst/extdata")) dir.create("inst/extdata", recursive = TRUE)
+      saveRDS(
+        list(universe = universe, metadata = metadata, history = history),
+        "inst/extdata/vignette_data.rds"
+      )
+      "inst/extdata/vignette_data.rds"
+    },
+    format = "file"
   )
 )
