@@ -290,7 +290,7 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
       )
       
       # Plot 2: AUM vs TER
-      if ("ter_val" %in% colnames(combined) && !all(is.na(combined$ter_val))) {
+      if ("ter_val" %in% colnames(combined)) {
         print(
           ggplot(combined, aes(x = total_amount, y = ter_val)) +
             geom_point() +
@@ -300,6 +300,8 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
                  y = "Total Expense Ratio (%)") +
             theme_minimal()
         )
+      } else {
+        print("TER data not available for plotting (ter_val column missing).")
       }
     }
   }

@@ -42,7 +42,7 @@ suppressPackageStartupMessages({
 pkgs <- installed.packages()[, "Package"]
 sorted_pkgs <- sort(pkgs)
 n_pkgs <- length(sorted_pkgs)
-catalert(sprintf("WebR Session Initialized.\nLoaded %d packages.\n", n_pkgs))
+cat(sprintf("WebR Session Initialized.\nLoaded %d packages.\n", n_pkgs))
 if (n_pkgs > 6) {
   cat("First 3: ", paste(head(sorted_pkgs, 3), collapse=", "), "\n")
   cat("Last 3:  ", paste(tail(sorted_pkgs, 3), collapse=", "), "\n")

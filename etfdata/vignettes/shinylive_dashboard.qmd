@@ -23,17 +23,20 @@ shinylive:
     - ggplot2
     - DT
     - htmltools
-    - etfdata
+    - httr2
+    - janitor
+    - readr
+    - stringr
+    - purrr
   repos:
     - https://repo.r-wasm.org/
-    - https://johngavin.r-universe.dev
 vignette: >
   %\VignetteIndexEntry{ETF Data Dashboard (Shinylive)}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
 
-This vignette presents an interactive Shiny dashboard, powered by Shinylive and WebR, allowing you to explore and filter ETF data directly in your browser. The data is sourced from the `etfdata` package.
+This vignette presents an interactive Shiny dashboard, powered by Shinylive and WebR, allowing you to explore and filter ETF data directly in your browser.
 
 ```{r setup, include=FALSE}
 # These libraries are implicitly loaded by shinylive configuration
@@ -41,12 +44,136 @@ This vignette presents an interactive Shiny dashboard, powered by Shinylive and 
 # library(dplyr)
 # library(ggplot2)
 # library(DT)
-# library(etfdata)
 ```
 
 ```{shinylive-r}
 #| standalone: true
 #| viewerHeight: 800
+
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(DT)
+library(htmltools)
+library(httr2)
+library(janitor)
+library(readr)
+library(stringr)
+
+# --- Helper Functions (Embedded for WASM) ---
+
+fetch_justetf_screener <- function(min_aum_gbp = 200, max_ter = 0.75) {
+  
+  # Endpoint often used by the screener
+  # Note: This is an internal API and may change.
+  url <- "https://www.justetf.com/api/etfs/en/search"
+  
+  # Construct the request
+  # 'draw', 'start', 'length' are DataTables parameters
+  # 'lang' and 'country' usually passed in body or query
+  req <- httr2::request(url) %>%
+    httr2::req_body_json(list(
+      draw = 1,
+      start = 0,
+      length = -1, # Fetch all
+      search = list(value = "", regex = FALSE),
+      # Filter for LSE listings roughly corresponds to `exchange` or similar params in some variations
+      # But often the main search returns all. We filter post-fetch.
+      # However, we can try to restrict to ETFs available in UK.
+      country = "GB",
+      universeType = "private"
+    )) %>%
+    httr2::req_headers(
+      "User-Agent" = "Mozilla/5.0 (R; etfdata package)",
+      "Content-Type" = "application/json"
+    )
+  
+  # Perform request
+  resp <- httr2::req_perform(req)
+  
+  # Parse JSON
+  json_data <- httr2::resp_body_json(resp)
+  
+  # Extract the 'data' element which contains the list
+  if (is.null(json_data$data)) {
+    warning("No data found in JustETF response.")
+    return(dplyr::tibble())
+  }
+  
+  # Convert to tibble
+  # The list items might be varying in length/structure, bind_rows usually handles it
+  df <- dplyr::bind_rows(json_data$data) %>%
+    janitor::clean_names()
+  
+  if (nrow(df) == 0) {
+    return(df)
+  }
+  
+  # Process and Filter
+  # Fields often returned: "isin", "name", "ter", "fund_size", "currency", etc.
+  # AUM and TER come as formatted strings often (e.g. "0.07%", "1,234 m").
+  
+  df_clean <- df %>%
+    # Parse TER: Remove '%' and convert to numeric
+    dplyr::mutate(
+      ter_num = readr::parse_number(as.character(.data$ter))
+    ) %>%
+    # Parse AUM: Handle 'm' (millions) or 'bn' (billions) if present, though JustETF usually normalizes to millions in some views
+    # Often it is just a formatted number.
+    dplyr::mutate(
+      aum_num = readr::parse_number(as.character(.data$fund_size))
+    )
+    
+  # Apply filters
+  # Note: AUM in JustETF search is often in the user's locale currency or GBP if country=GB?
+  # Usually it's in GBP for country=GB.
+  # LSE Listing: The search API usually returns metadata. 
+  # It does NOT always explicitly list all exchanges in the main table.
+  # We assume "country=GB" context implies available in UK, likely LSE.
+  
+  df_filtered <- df_clean %>%
+    dplyr::filter(
+      .data$aum_num >= min_aum_gbp,
+      .data$ter_num <= max_ter
+    )
+  
+  return(df_filtered)
+}
+
+# --- Data (Embedded for WASM) ---
+
+seed_universe <- readr::read_csv("
+ticker,name,isin,currency
+VUSA.L,Vanguard S&P 500 UCITS ETF,IE00B3XXRP09,GBP
+CSPX.L,iShares Core S&P 500 UCITS ETF,IE00B5BMR087,GBP
+INRG.L,iShares Global Clean Energy UCITS ETF,IE00B1XNHC34,GBP
+EQQQ.L,Invesco EQQQ Nasdaq-100 UCITS ETF,IE0032077012,GBP
+VWRL.L,Vanguard FTSE All-World UCITS ETF,IE00B3RBWM25,GBP
+ISF.L,iShares Core FTSE 100 UCITS ETF,IE0005042456,GBP
+VMID.L,Vanguard FTSE 250 UCITS ETF,IE00BKX55Q28,GBP
+VFEM.L,Vanguard FTSE Emerging Markets UCITS ETF,IE00B3VVMM84,GBP
+VEVE.L,Vanguard FTSE Developed World UCITS ETF,IE00BKX55T58,GBP
+VGOV.L,Vanguard UK Gilt UCITS ETF,IE00B42WWV65,GBP
+IGLT.L,iShares Core UK Gilts UCITS ETF,IE00B1FZSB30,GBP
+IUHC.L,iShares S&P 500 Health Care Sector UCITS ETF,IE00B43HR379,GBP
+IITU.L,iShares S&P 500 Information Technology Sector UCITS ETF,IE00B3WJKG14,GBP
+IWDA.L,iShares Core MSCI World UCITS ETF,IE00B4L5Y983,GBP
+EMIM.L,iShares Core MSCI Emerging Markets IMI UCITS ETF,IE00BKM4GZ66,GBP
+IUSA.L,iShares S&P 500 UCITS ETF (Dist),IE0031442068,GBP
+HMCH.L,HSBC MSCI China UCITS ETF,IE00B44T3H88,GBP
+SJPA.L,iShares Core MSCI Japan IMI UCITS ETF,IE00B4L5YX21,GBP
+CPXJ.L,iShares Core MSCI Pacific ex-Japan UCITS ETF,IE00B52MJY50,GBP
+VERX.L,Vanguard FTSE Developed Europe ex-UK UCITS ETF,IE00B902GG31,GBP
+")
+
+get_etf_universe_static <- function(n = Inf) {
+  if (is.finite(n) && n < nrow(seed_universe)) {
+    return(head(seed_universe, n))
+  }
+  return(seed_universe)
+}
+
+# --- App UI & Server ---
 
 # UI definition
 ui <- htmltools::tagList(
@@ -54,7 +181,7 @@ ui <- htmltools::tagList(
     titlePanel("ETF Universe Explorer"),
     sidebarLayout(
       sidebarPanel(
-        p("Explore the universe of ETFs provided by the etfdata package."),
+        p("Explore the universe of ETFs (Embedded Data)."),
         selectInput("currencyFilter",
                     "Filter by Currency:",
                     choices = c("All", "GBP", "USD", "EUR"),
@@ -86,9 +213,8 @@ server <- function(input, output, session) {
   observe({
     req(input$currencyFilter)
     
-    # Use cached data from etfdata package
-    static_universe <- etfdata::get_etf_universe(n = Inf) %>%
-      mutate(currency = as.character(currency)) # Ensure currency is character for filtering
+    static_universe <- get_etf_universe_static(n = Inf) %>%
+      mutate(currency = as.character(currency))
     
     if (input$currencyFilter != "All") {
       static_universe <- static_universe %>%
@@ -102,10 +228,8 @@ server <- function(input, output, session) {
     showNotification("Attempting to fetch live data... This may take a moment or fail due to CORS/API limits.", duration = 5)
     
     fetched_data <- tryCatch({
-      # Fetch from JustETF API
-      # min_aum_gbp and max_ter are default in fetch_justetf_screener()
-      # Adjust filters as needed for the UI
-      etfdata::fetch_justetf_screener(min_aum_gbp = input$minAUM) # Placeholder, needs TER input
+      # Use local function, not etfdata::
+      fetch_justetf_screener(min_aum_gbp = input$minAUM) 
     }, error = function(e) {
       message("Error fetching live data: ", e$message)
       showNotification(paste("Error fetching live data:", e$message), type = "error", duration = 10)
@@ -117,7 +241,6 @@ server <- function(input, output, session) {
     })
     
     if (!is.null(fetched_data) && nrow(fetched_data) > 0) {
-      # For now, just display fetched data. In a real app, you might merge or replace.
       universe_data(fetched_data)
       showNotification("Live data fetched successfully!", type = "message", duration = 5)
     } else {
@@ -128,9 +251,16 @@ server <- function(input, output, session) {
   output$etfTable <- DT::renderDataTable({
     data <- universe_data()
     req(data)
+    
+    # Handle different column names between static and fetched data if necessary
+    # JustETF screener returns 'fund_size' and 'ter'. Seed list does not.
+    # We display what we have.
+    
+    cols <- c("ticker", "name", "currency", "fund_size", "ter")
+    cols <- intersect(cols, colnames(data))
+    
     data %>%
-      filter(aum_num_numeric_representation >= input$minAUM * 1e6) %>% # Assuming aum_num_numeric_representation from screener
-      select(ticker, name, currency, fund_size, ter) %>%
+      select(all_of(cols)) %>%
       DT::datatable(options = list(pageLength = 10))
   })
 
@@ -138,36 +268,27 @@ server <- function(input, output, session) {
     data <- universe_data()
     req(data)
     
-    # Placeholder: Assuming combined data with aum_num and ter_num
-    # This plot will only work if live data is fetched or if package has processed data
-    # that includes aum_num and ter_num.
-    plot_data <- data %>%
-      filter(!is.na(aum_num) & !is.na(ter_num)) %>%
-      filter(aum_num >= input$minAUM) # Match UI filter
+    # Only plot if we have AUM and TER (from live fetch)
+    if ("aum_num" %in% colnames(data) && "ter_num" %in% colnames(data)) {
+       plot_data <- data %>%
+        filter(!is.na(aum_num) & !is.na(ter_num)) %>%
+        filter(aum_num >= input$minAUM)
 
-    if (nrow(plot_data) > 0) {
-        ggplot(plot_data, aes(x = aum_num, y = ter_num)) +
-        geom_point(aes(color = currency), alpha = 0.7) +
-        scale_x_log10(labels = scales::label_number(suffix = "M", scale_cut = scales::cut_short_scale())) +
-        scale_y_log10(labels = scales::label_percent(scale = 1)) +
-        labs(title = "AUM vs TER", x = "Assets Under Management", y = "Total Expense Ratio (%)") +
-        theme_minimal()
+      if (nrow(plot_data) > 0) {
+          ggplot(plot_data, aes(x = aum_num, y = ter_num)) +
+          geom_point(aes(color = currency), alpha = 0.7) +
+          scale_x_log10(labels = scales::label_number(suffix = "M", scale_cut = scales::cut_short_scale())) +
+          scale_y_log10(labels = scales::label_percent(scale = 1)) +
+          labs(title = "AUM vs TER", x = "Assets Under Management", y = "Total Expense Ratio (%)") +
+          theme_minimal()
+      } else {
+          ggplot() + annotate("text", x = 0.5, y = 0.5, label = "No data to plot") + theme_void()
+      }
     } else {
-        ggplot() +
-        annotate("text", x = 0.5, y = 0.5, label = "No data to plot") +
-        theme_void()
+       ggplot() + annotate("text", x = 0.5, y = 0.5, label = "Fetch live data to see plot") + theme_void()
     }
   })
 }
 
 shinyApp(ui, server)
 ```
-
-## Session Info
-
-<details>
-<summary>Click to expand Session Info</summary>
-```{r session-info}
-sessionInfo()
-```
-</details>
