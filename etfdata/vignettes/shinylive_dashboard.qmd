@@ -4,6 +4,16 @@ format:
   html:
     resources:
       - shinylive-sw.js
+    header-includes:
+      - |
+        <script>
+        // Manually register the Service Worker at the root scope to fix path issues in pkgdown
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('shinylive-sw.js', { scope: '.' })
+            .then((reg) => console.log('Manual SW registration success:', reg))
+            .catch((err) => console.error('Manual SW registration failed:', err));
+        }
+        </script>
 filters:
   - shinylive
 shinylive:

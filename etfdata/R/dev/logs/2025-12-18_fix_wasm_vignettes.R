@@ -37,5 +37,8 @@ setwd("llm/finance/data/etfs")
 # - Added `vignette_snapshot` target to `_targets.R` to automate `vignette_data.rds` generation.
 # - Fixed `shinylive_dashboard.qmd` YAML: moved `resources: - shinylive-sw.js` to `format: html` to correct Service Worker scope/registration.
 
-# 7. Deployment
+# 7. Final Fixes (Part 2)
+# - Injected manual Service Worker registration script into `shinylive_dashboard.qmd` header to force correct scope (`.`) and path (`shinylive-sw.js`), overriding the misconfigured extension behavior.
+
+# 8. Deployment
 # - Committing and pushing final fixes.
