@@ -4,6 +4,7 @@ format:
   html:
     resources:
       - shinylive-sw.js
+      - ../inst/extdata/seed_universe.csv
     header-includes:
       - |
         <script>
@@ -142,35 +143,21 @@ fetch_justetf_screener <- function(min_aum_gbp = 200, max_ter = 0.75) {
 
 # --- Data (Embedded for WASM) ---
 
-seed_universe <- readr::read_csv("
-ticker,name,isin,currency
-VUSA.L,Vanguard S&P 500 UCITS ETF,IE00B3XXRP09,GBP
-CSPX.L,iShares Core S&P 500 UCITS ETF,IE00B5BMR087,GBP
-INRG.L,iShares Global Clean Energy UCITS ETF,IE00B1XNHC34,GBP
-EQQQ.L,Invesco EQQQ Nasdaq-100 UCITS ETF,IE0032077012,GBP
-VWRL.L,Vanguard FTSE All-World UCITS ETF,IE00B3RBWM25,GBP
-ISF.L,iShares Core FTSE 100 UCITS ETF,IE0005042456,GBP
-VMID.L,Vanguard FTSE 250 UCITS ETF,IE00BKX55Q28,GBP
-VFEM.L,Vanguard FTSE Emerging Markets UCITS ETF,IE00B3VVMM84,GBP
-VEVE.L,Vanguard FTSE Developed World UCITS ETF,IE00BKX55T58,GBP
-VGOV.L,Vanguard UK Gilt UCITS ETF,IE00B42WWV65,GBP
-IGLT.L,iShares Core UK Gilts UCITS ETF,IE00B1FZSB30,GBP
-IUHC.L,iShares S&P 500 Health Care Sector UCITS ETF,IE00B43HR379,GBP
-IITU.L,iShares S&P 500 Information Technology Sector UCITS ETF,IE00B3WJKG14,GBP
-IWDA.L,iShares Core MSCI World UCITS ETF,IE00B4L5Y983,GBP
-EMIM.L,iShares Core MSCI Emerging Markets IMI UCITS ETF,IE00BKM4GZ66,GBP
-IUSA.L,iShares S&P 500 UCITS ETF (Dist),IE0031442068,GBP
-HMCH.L,HSBC MSCI China UCITS ETF,IE00B44T3H88,GBP
-SJPA.L,iShares Core MSCI Japan IMI UCITS ETF,IE00B4L5YX21,GBP
-CPXJ.L,iShares Core MSCI Pacific ex-Japan UCITS ETF,IE00B52MJY50,GBP
-VERX.L,Vanguard FTSE Developed Europe ex-UK UCITS ETF,IE00B902GG31,GBP
-")
+# Static seed list if live fetch fails (Embedded string removed, reading file)
+# Since we cannot easily read file in WASM unless uploaded/available,
+# we will rely on fetch_justetf_screener for "Live" data and fail gracefully.
+# But user requested "seed_universe.csv" resource usage.
+# We attempt to read it from current directory (if copied by resources).
 
 get_etf_universe_static <- function(n = Inf) {
-  if (is.finite(n) && n < nrow(seed_universe)) {
-    return(head(seed_universe, n))
+  if (file.exists("seed_universe.csv")) {
+    seed_universe <- readr::read_csv("seed_universe.csv", show_col_types = FALSE)
+    if (is.finite(n) && n < nrow(seed_universe)) {
+      return(head(seed_universe, n))
+    }
+    return(seed_universe)
   }
-  return(seed_universe)
+  return(NULL)
 }
 
 # --- App UI & Server ---
@@ -181,7 +168,7 @@ ui <- htmltools::tagList(
     titlePanel("ETF Universe Explorer"),
     sidebarLayout(
       sidebarPanel(
-        p("Explore the universe of ETFs (Embedded Data)."),
+        p("Explore the universe of ETFs."),
         selectInput("currencyFilter",
                     "Filter by Currency:",
                     choices = c("All", "GBP", "USD", "EUR"),
@@ -197,7 +184,7 @@ ui <- htmltools::tagList(
       mainPanel(
         h3("Filtered ETF Data"),
         DT::dataTableOutput("etfTable"),
-        h3("AUM vs TER (Placeholder Plot)"),
+        h3("AUM vs TER (Live Data Only)"),
         plotOutput("aumTerPlot")
       )
     )
@@ -207,36 +194,43 @@ ui <- htmltools::tagList(
 # Server logic
 server <- function(input, output, session) {
 
-  # Load static universe data
+  # Load data
   universe_data <- reactiveVal(NULL)
 
+  # Initial Load
   observe({
-    req(input$currencyFilter)
+    # Try to load local seed file first
+    static <- get_etf_universe_static()
     
-    static_universe <- get_etf_universe_static(n = Inf) %>%
-      mutate(currency = as.character(currency))
-    
-    if (input$currencyFilter != "All") {
-      static_universe <- static_universe %>%
-        filter(currency == input$currencyFilter)
+    if (!is.null(static)) {
+        static <- static %>% mutate(currency = as.character(currency))
+        
+        if (input$currencyFilter != "All") {
+          static <- static %>% filter(currency == input$currencyFilter)
+        }
+        universe_data(static)
+    } else {
+        # If no static file, try fetch immediately (might fail if CORS)
+        # Using isolate to avoid loop
+        isolate({
+             showNotification("Fetching live data...", duration = 3)
+             try({
+                 res <- fetch_justetf_screener(min_aum_gbp = 0, max_ter = 100)
+                 if (nrow(res) > 0) universe_data(res)
+             }, silent = TRUE)
+        })
     }
-    universe_data(static_universe)
   })
 
   # Event for fetching live data
   observeEvent(input$fetchLive, {
-    showNotification("Attempting to fetch live data... This may take a moment or fail due to CORS/API limits.", duration = 5)
+    showNotification("Attempting to fetch live data...", duration = 5)
     
     fetched_data <- tryCatch({
-      # Use local function, not etfdata::
       fetch_justetf_screener(min_aum_gbp = input$minAUM) 
     }, error = function(e) {
       message("Error fetching live data: ", e$message)
       showNotification(paste("Error fetching live data:", e$message), type = "error", duration = 10)
-      return(NULL)
-    }, warning = function(w) {
-      message("Warning fetching live data: ", w$message)
-      showNotification(paste("Warning fetching live data:", w$message), type = "warning", duration = 10)
       return(NULL)
     })
     
@@ -252,9 +246,9 @@ server <- function(input, output, session) {
     data <- universe_data()
     req(data)
     
-    # Handle different column names between static and fetched data if necessary
-    # JustETF screener returns 'fund_size' and 'ter'. Seed list does not.
-    # We display what we have.
+    if (input$currencyFilter != "All" && "currency" %in% colnames(data)) {
+        data <- data %>% filter(currency == input$currencyFilter)
+    }
     
     cols <- c("ticker", "name", "currency", "fund_size", "ter")
     cols <- intersect(cols, colnames(data))
@@ -267,6 +261,10 @@ server <- function(input, output, session) {
   output$aumTerPlot <- renderPlot({
     data <- universe_data()
     req(data)
+    
+    if (input$currencyFilter != "All" && "currency" %in% colnames(data)) {
+        data <- data %>% filter(currency == input$currencyFilter)
+    }
     
     # Only plot if we have AUM and TER (from live fetch)
     if ("aum_num" %in% colnames(data) && "ter_num" %in% colnames(data)) {

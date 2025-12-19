@@ -6,3 +6,5 @@
 ^_targets.R$
 ^local_lib$
 ^common.R$
+^_pkgdown\.yml$
+^_targets\.yaml$
