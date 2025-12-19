@@ -17,10 +17,7 @@ webr:
     - zoo
     - xts
     - TTR
-    - quadprog
     - quantmod
-    - PerformanceAnalytics
-    - tidyquant
     - etfdata
   repos:
     - https://repo.r-wasm.org/
@@ -38,7 +35,6 @@ This vignette demonstrates the `etfdata` package running entirely in your browse
 # Supress startup messages and print summary
 suppressPackageStartupMessages({
   library(etfdata)
-  library(tidyquant)
   library(ggplot2)
 })
 

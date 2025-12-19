@@ -13,9 +13,13 @@
 #'   fetch_etf_holdings("SPY")
 #' }
 #'
-#' @importFrom tidyquant tq_fund_holdings
 #' @importFrom logger log_info log_warn log_error
 fetch_etf_holdings <- function(symbol) {
+  if (!requireNamespace("tidyquant", quietly = TRUE)) {
+    warning("Package 'tidyquant' is required for fetch_etf_holdings. Please install it.")
+    return(tibble::tibble())
+  }
+
   logger::log_info("Fetching holdings for ETF: {symbol}")
   
   tryCatch({

@@ -22,8 +22,7 @@ Imports:
     rlang,
     rvest,
     stringr,
-    tibble,
-    tidyquant
+    tibble
 Suggests: 
     ggplot2,
     knitr,
@@ -34,5 +33,6 @@ Suggests:
     DiagrammeR,
     shinylive,
     DT,
-    htmltools
+    htmltools,
+    tidyquant
 VignetteBuilder: knitr, quarto
