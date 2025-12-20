@@ -22,7 +22,8 @@ Imports:
     rlang,
     rvest,
     stringr,
-    tibble
+    tibble,
+    utf8
 Suggests: 
     ggplot2,
     knitr,

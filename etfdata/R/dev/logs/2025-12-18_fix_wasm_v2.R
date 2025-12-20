@@ -23,6 +23,9 @@ setwd("llm/finance/data/etfs")
 # - `etfdata/vignettes/analysis.qmd`:
 #   - Updated plotting logic to be robust/unconditional for the second plot.
 
-# 3. Verification
-# - Running checks locally (vignettes=FALSE).
-# - Pushing to CI for deployment verification.
+# 4. R-Universe Fixes
+# - Added `utf8` to `DESCRIPTION` Imports to resolve "there is no package called ‘utf8’" error in R-Universe checks.
+# - (Note: This may cause a check NOTE about unused import, but is necessary for transitive dependency stability).
+
+# 5. Deployment
+# - Pushing to CI/R-Universe.
