@@ -11,6 +11,7 @@
 #' @importFrom dplyr mutate case_when
 #' @importFrom tibble tibble
 #' @importFrom rlang .data
+#' @importFrom utf8 utf8_valid
 #' @examples
 #' parse_aum("GBP 100,642 m")
 parse_aum <- function(aum_text) {

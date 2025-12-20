@@ -27,5 +27,10 @@ setwd("llm/finance/data/etfs")
 # - Added `utf8` to `DESCRIPTION` Imports to resolve "there is no package called ‘utf8’" error in R-Universe checks.
 # - (Note: This may cause a check NOTE about unused import, but is necessary for transitive dependency stability).
 
-# 5. Deployment
+# 5. Zero-Note Policy Enforcement
+# - Updated `R/utils.R` to `@importFrom utf8 utf8_valid` to resolve "Namespace in Imports field not imported" NOTE.
+# - Updated `../.gemini/GEMINI.md` to explicitly require fixing ALL notes and re-running checks.
+# - Verified `devtools::check(vignettes = FALSE, error_on = "note")` passes with 0 notes.
+
+# 6. Deployment
 # - Pushing to CI/R-Universe.
