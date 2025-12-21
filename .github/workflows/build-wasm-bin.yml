@@ -79,3 +79,4 @@ jobs:
           else
             echo "No changes to bin/"
           fi
+        working-directory: .
