@@ -5,7 +5,7 @@ Imports: crosstalk, htmltools (>= 0.3.6), htmlwidgets (>= 1.3),
 Suggests: bslib, future, httpuv, knitr (>= 1.8), rmarkdown, shiny (>=
         1.6), testit, tibble
 License: MIT + file LICENSE
-MD5sum: d6833864aa3dcc77e9c277104a0486cc
+MD5sum: 143913ca35b1d2aade96ca6bbccdb50d
 NeedsCompilation: no
 
 Package: RColorBrewer
@@ -22,7 +22,7 @@ Imports: utils
 Suggests: bench, callr, covr, knitr, methods, rmarkdown, testthat (>=
         3.2.0), tibble
 License: MIT + file LICENSE
-MD5sum: a5dc35ce9dd0bed5479efa78dd3f785a
+MD5sum: bea4c90f189efd2aa12c2233e99f4b87
 NeedsCompilation: yes
 
 Package: TTR
@@ -92,7 +92,7 @@ Imports: dplyr, httr2, janitor, logger, lubridate, magrittr, purrr,
 Suggests: ggplot2, knitr, rmarkdown, targets, quarto, visNetwork,
         DiagrammeR, shinylive, DT, htmltools, tidyquant, scales
 License: MIT + file LICENSE
-MD5sum: b5a80dbd4ecf9152e3aee376b435e697
+MD5sum: dcfe0e2c528a4f0efd9a84740e10e4c6
 NeedsCompilation: no
 
 Package: farver
@@ -338,7 +338,7 @@ Imports: methods
 LinkingTo: zoo
 Suggests: timeSeries, timeDate, tseries, chron, tinytest
 License: GPL (>= 2)
-MD5sum: 6f88bf1faafc22086aac5181fd3528ca
+MD5sum: 042a2deae897e37e728877c9ed728899
 NeedsCompilation: yes
 
 Package: zoo
