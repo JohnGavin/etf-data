@@ -84,27 +84,30 @@ function downloadRHistory() {
 }
 
 // Register event handlers ----
+if (command_history_modal && command_history_btn && command_history_close_span && command_history_download_btn) {
+    // When the user clicks the View R History button, open the command modal
+    command_history_btn.onclick = function() {
+        populateCommandHistoryModal();
+        command_history_modal.style.display = "block";
+    }
 
-// When the user clicks the View R History button, open the command modal
-command_history_btn.onclick = function() {
-    populateCommandHistoryModal();
-    command_history_modal.style.display = "block";
-}
-
-// When the user clicks on <span> (x), close the command modal
-command_history_close_span.onclick = function() {
-    command_history_modal.style.display = "none";
-}
-
-// When the user clicks anywhere outside of the command modal, close it
-window.onclick = function(event) {
-    if (event.target == command_history_modal) {
+    // When the user clicks on <span> (x), close the command modal
+    command_history_close_span.onclick = function() {
         command_history_modal.style.display = "none";
     }
-}
 
-// Add an onclick event listener to the download button so that
-// the user can download the R history as a text file
-command_history_download_btn.onclick = function() {
-    downloadRHistory();
-};
+    // When the user clicks anywhere outside of the command modal, close it
+    window.onclick = function(event) {
+        if (event.target == command_history_modal) {
+            command_history_modal.style.display = "none";
+        }
+    }
+
+    // Add an onclick event listener to the download button so that
+    // the user can download the R history as a text file
+    command_history_download_btn.onclick = function() {
+        downloadRHistory();
+    };
+} else {
+    console.warn("qwebr history controls not found; skipping handlers.");
+}

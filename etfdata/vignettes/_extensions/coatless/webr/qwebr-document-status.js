@@ -55,6 +55,10 @@ function qwebrSetupQuartoSidebar() {
 function qwebrPlaceQuartoSidebar() {
   // Get the reference to the element with id 'quarto-document-content'
   var referenceNode = document.getElementById('quarto-document-content');
+  if (!referenceNode || !referenceNode.parentNode) {
+    console.warn('Element with ID "quarto-document-content" not found.');
+    return;
+  }
 
   // Create the new div element
   var newSideBarDiv = qwebrSetupQuartoSidebar();

@@ -14,6 +14,7 @@ webr:
     - httr2
     - janitor
     - readr
+    - scales
     - zoo
     - xts
     - TTR
@@ -99,15 +100,46 @@ Query the JustETF API directly.
 
 ```{webr-r}
 #| caption: "JustETF Screener"
-# Fetch ETFs with > 200m GBP AUM
-tryCatch({
-  screener <- etfdata::fetch_justetf_screener(min_aum_gbp = 200)
-  if (nrow(screener) > 0) {
-    print(head(screener))
-  } else {
-    print("No results returned from screener.")
+get_cached_screener <- function(min_aum_gbp = 200, max_ter = 0.75) {
+  path <- system.file("extdata", "vignette_data.rds", package = "etfdata")
+  if (path == "" || !file.exists(path)) {
+    return(dplyr::tibble())
   }
-}, error = function(e) {
-  message("Screener failed: ", e$message)
-})
+
+  snap <- readRDS(path)
+  if (!all(c("metadata", "universe") %in% names(snap))) {
+    return(dplyr::tibble())
+  }
+
+  snap$metadata |>
+    dplyr::mutate(
+      aum_num = readr::parse_number(.data$aum_text),
+      ter_num = readr::parse_number(.data$ter_text)
+    ) |>
+    dplyr::left_join(snap$universe, by = "isin") |>
+    dplyr::filter(
+      .data$aum_num >= min_aum_gbp,
+      .data$ter_num <= max_ter
+    )
+}
+
+is_webr <- grepl("emscripten", R.version$os, ignore.case = TRUE)
+screener <- if (is_webr) {
+  message("Using cached screener snapshot (browser CORS blocks JustETF API).")
+  get_cached_screener(min_aum_gbp = 200)
+} else {
+  tryCatch(
+    etfdata::fetch_justetf_screener(min_aum_gbp = 200),
+    error = function(e) {
+      message("Screener failed: ", e$message)
+      get_cached_screener(min_aum_gbp = 200)
+    }
+  )
+}
+
+if (nrow(screener) > 0) {
+  print(head(screener))
+} else {
+  print("No results returned from screener.")
+}
 ```

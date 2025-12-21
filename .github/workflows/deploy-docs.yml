@@ -44,6 +44,14 @@ jobs:
             clipr
             crayon
             munsell
+            scales
+            gtable
+            isoband
+            farver
+            labeling
+            RColorBrewer
+            viridisLite
+            S7
             tidyr
             tibble
             quantmod
