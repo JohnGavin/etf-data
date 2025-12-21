@@ -20,7 +20,7 @@ webr:
     - quantmod
     - etfdata
   repos:
-    - https://repo.r-wasm.org/
+    - https://johngavin.github.io/etf-data/bin/
 vignette: >
   %\VignetteIndexEntry{etfdata in WebAssembly (WASM)}
   %\VignetteEngine{quarto::html}

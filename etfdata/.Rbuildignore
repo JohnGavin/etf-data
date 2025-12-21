@@ -1,6 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^default\.nix$
 ^result.*$
 ^_targets$
 ^_targets.R$
@@ -8,3 +7,4 @@
 ^common.R$
 ^_pkgdown\.yml$
 ^_targets\.yaml$
+^vignettes/shinylive_dashboard\.qmd$

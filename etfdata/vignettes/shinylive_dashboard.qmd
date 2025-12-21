@@ -2,6 +2,8 @@
 title: "ETF Data Dashboard (Shinylive)"
 format: 
   html:
+    self-contained: false
+    embed-resources: false
     resources:
       - shinylive-sw.js
       - ../inst/extdata/seed_universe.csv
@@ -15,9 +17,10 @@ format:
             .catch((err) => console.error('Manual SW registration failed:', err));
         }
         </script>
+engine: knitr
 filters:
   - shinylive
-shinylive:
+webr:
   packages:
     - shiny
     - dplyr
@@ -29,8 +32,16 @@ shinylive:
     - readr
     - stringr
     - purrr
+    - lubridate
+    - tzdb
+    - vroom
+    - bit
+    - bit64
+    - clipr
+    - crayon
+    - munsell
   repos:
-    - https://repo.r-wasm.org/
+    - https://johngavin.github.io/etf-data/bin/
 vignette: >
   %\VignetteIndexEntry{ETF Data Dashboard (Shinylive)}
   %\VignetteEngine{quarto::html}

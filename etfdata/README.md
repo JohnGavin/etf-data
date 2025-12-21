@@ -80,9 +80,13 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 ```
 
 ### Running
-To drop into a reproducible R environment with all dependencies:
+From the project root (`etf-data`), drop into a reproducible R environment with all dependencies:
 ```bash
 nix-shell default.nix
+```
+Install the package into your user library inside the nix shell (once per shell):
+```bash
+R CMD INSTALL --library=$HOME/.Rlibs_etf etfdata
 ```
 Then run the examples (e.g. print the universe):
 ```bash

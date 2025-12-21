@@ -20,7 +20,7 @@ data_loaded <- FALSE
 universe <- NULL
 metadata <- NULL
 history <- NULL
-is_ci <- as.logical(Sys.getenv("CI", "false"))
+is_ci <- identical(Sys.getenv("CI"), "true")
 
 tryCatch({
   suppressPackageStartupMessages({
@@ -221,34 +221,38 @@ We fetch daily price history from Yahoo Finance using `quantmod`.
 fetch_price_history("VUSA.L")
 ```
 
-```{r history-plot, echo=TRUE, message=FALSE, warning=FALSE, eval=!is_ci}
-if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
+```{r history-plot, echo=TRUE, message=FALSE, warning=FALSE}
+is_ci <- isTRUE(get0("is_ci", ifnotfound = FALSE))
+if (is_ci) {
+  message("Skipping history plot in CI.")
+} else if (data_loaded && !is.null(history) && requireNamespace("ggplot2", quietly = TRUE)) {
   # Visualize Close Prices with Facets
   print(
-  history %>%
-    ggplot(aes(x = date, y = close, color = ticker)) +
-    geom_line() +
-    facet_wrap(~ticker, scales = "free_y") +
-    labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
-    theme_minimal() +
-    theme(legend.position = "none")
+    history %>%
+      ggplot(aes(x = date, y = close, color = ticker)) +
+      geom_line() +
+      facet_wrap(~ticker, scales = "free_y") +
+      labs(title = "ETF Price History (LSE)", y = "Close Price (GBP)") +
+      theme_minimal() +
+      theme(legend.position = "none")
   )
   print(history)
 }
 ```
 
-```{r history-plot-static, echo=FALSE, eval=is_ci}
+```{r history-plot-static, echo=FALSE}
 # Static fallback for CI
-knitr::include_graphics("history_plot.png")
+if (isTRUE(get0("is_ci", ifnotfound = FALSE))) {
+  knitr::include_graphics("history_plot.png")
+}
 ```
 
 ## Combined Analysis
 
-We join the datasets and parse the AUM strings to analyze the relationship between Fund Size and Liquidity.
+We join the datasets and parse the AUM strings to analyze the relationship between Fund Size, Liquidity, and Fees.
 
-```{r combined, echo=TRUE, message=FALSE, warning=FALSE, eval=!is_ci}
+```{r combined, echo=TRUE, message=FALSE, warning=FALSE}
 if (data_loaded && !is.null(history) && !is.null(metadata)) {
-  # Join data
   avg_vol <- history %>%
     group_by(ticker) %>%
     summarise(avg_daily_vol = mean(volume, na.rm = TRUE))
@@ -258,12 +262,10 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
       inner_join(metadata, by = "isin") %>%
       inner_join(avg_vol, by = "ticker")
     
-    # Parse AUM
     if (requireNamespace("stringr", quietly = TRUE) && requireNamespace("dplyr", quietly = TRUE)) {
        combined <- bind_cols(combined, parse_aum(combined$aum_text))
     }
 
-    # Parse TER
     if (requireNamespace("readr", quietly = TRUE) && requireNamespace("stringr", quietly = TRUE)) {
       combined <- combined %>%
         mutate(
@@ -275,41 +277,49 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
     cols_to_show <- c("ticker", "name", "currency", "aum_amount", "aum_units", "avg_daily_vol", "ter_val")
     cols_to_show <- intersect(cols_to_show, colnames(combined))
     knitr::kable(head(combined %>% select(all_of(cols_to_show))))
-
-    if (requireNamespace("ggplot2", quietly = TRUE)) {
-      # Plot 1: AUM vs Volume
-      print(
-        ggplot(combined, aes(x = total_amount, y = avg_daily_vol)) +
-          geom_point() +
-          scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
-          scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
-          labs(title = "ETF Size vs Liquidity",
-               x = "Assets Under Management (AUM in GBP)",
-               y = "Average Daily Volume") +
-          theme_minimal()
-      )
-      
-      # Plot 2: AUM vs TER
-      if ("ter_val" %in% colnames(combined)) {
-        print(
-          ggplot(combined, aes(x = total_amount, y = ter_val)) +
-            geom_point() +
-            scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
-            labs(title = "ETF Size vs Cost (TER)",
-                 x = "Assets Under Management (AUM in GBP)",
-                 y = "Total Expense Ratio (%)") +
-            theme_minimal()
-        )
-      } else {
-        print("TER data not available for plotting (ter_val column missing).")
-      }
-    }
   }
+} else {
+  print("Combined data not available for this build.")
 }
 ```
 
-```{r combined-plot-static, echo=FALSE, eval=is_ci}
-knitr::include_graphics("combined_plot.png")
+```{r combined-plot-liquidity, echo=TRUE, message=FALSE, warning=FALSE}
+if (exists("combined") && requireNamespace("ggplot2", quietly = TRUE)) {
+  print(
+    ggplot(combined, aes(x = total_amount, y = avg_daily_vol)) +
+      geom_point() +
+      scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
+      scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+      labs(title = "ETF Size vs Liquidity",
+           x = "Assets Under Management (AUM in GBP)",
+           y = "Average Daily Volume") +
+      theme_minimal()
+  )
+}
+```
+
+```{r combined-plot-ter, echo=TRUE, message=FALSE, warning=FALSE}
+if (exists("combined") && "ter_val" %in% colnames(combined) && requireNamespace("ggplot2", quietly = TRUE)) {
+  print(
+    ggplot(combined, aes(x = total_amount, y = ter_val)) +
+      geom_point() +
+      scale_x_log10(labels = scales::label_currency(prefix = "£", scale_cut = scales::cut_short_scale())) +
+      labs(title = "ETF Size vs Cost (TER)",
+           x = "Assets Under Management (AUM in GBP)",
+           y = "Total Expense Ratio (%)") +
+      theme_minimal()
+  )
+} else if (exists("combined")) {
+  print("TER data not available for plotting (ter_val column missing).")
+} else {
+  print("Combined data not available for plotting.")
+}
+```
+
+```{r combined-plot-static, echo=FALSE}
+if (!exists("combined") || !requireNamespace("ggplot2", quietly = TRUE)) {
+  knitr::include_graphics("combined_plot.png")
+}
 ```
 
 # Reproducibility & Metadata
@@ -349,6 +359,8 @@ if (data_loaded) {
 #| message: false
 #| warning: false
 #| error: true
+
+is_ci <- isTRUE(get0("is_ci", ifnotfound = FALSE))
 
 if (requireNamespace("targets", quietly = TRUE) && 
     requireNamespace("visNetwork", quietly = TRUE)) {

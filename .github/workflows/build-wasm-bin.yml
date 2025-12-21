@@ -1,0 +1,81 @@
+name: Build WASM Bin Only
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-wasm-bin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: etfdata
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build WASM packages
+        uses: r-wasm/actions/build-rwasm@v2
+        with:
+          packages: |
+            .
+            shiny
+            dplyr
+            ggplot2
+            DT
+            htmltools
+            httr2
+            janitor
+            readr
+            stringr
+            purrr
+            lubridate
+            tzdb
+            vroom
+            bit
+            bit64
+            clipr
+            crayon
+            munsell
+            tidyr
+            tibble
+            quantmod
+            TTR
+            xts
+            zoo
+          repo-path: ../bin
+          image-path: ../wasm-image
+          strip: "demo, doc, examples, help, html, include, tests, vignette"
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 0
+
+      - name: Update bin in gh-pages
+        run: |
+          mkdir -p gh-pages/bin
+          rm -rf gh-pages/bin/*
+          cp -r bin/* gh-pages/bin/
+        working-directory: .
+
+      - name: Commit and push bin updates
+        run: |
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git status --porcelain | grep .; then
+            git add bin
+            git commit -m "chore: update WASM bin (automated)"
+            git push origin gh-pages
+          else
+            echo "No changes to bin/"
+          fi

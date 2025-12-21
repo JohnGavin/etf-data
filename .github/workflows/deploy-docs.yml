@@ -13,7 +13,55 @@ permissions:
   id-token: write
 
 jobs:
+  build-wasm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: etfdata
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build WASM packages
+        uses: r-wasm/actions/build-rwasm@v2
+        with:
+          packages: |
+            .
+            shiny
+            dplyr
+            ggplot2
+            DT
+            htmltools
+            httr2
+            janitor
+            readr
+            stringr
+            purrr
+            lubridate
+            tzdb
+            vroom
+            bit
+            bit64
+            clipr
+            crayon
+            munsell
+            tidyr
+            tibble
+            quantmod
+            TTR
+            xts
+            zoo
+          repo-path: ../wasm-repo
+          image-path: ../wasm-image
+          strip: "demo, doc, examples, help, html, include, tests, vignette"
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-bin
+          path: ../wasm-repo
+
   deploy:
+    needs: build-wasm
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -58,6 +106,17 @@ jobs:
           Rscript -e 'pkgdown::build_site("etfdata")'
           mkdir -p _site
           cp -r etfdata/docs/* _site/
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-bin
+          path: wasm-repo
+
+      - name: Stage WASM repo
+        run: |
+          mkdir -p _site/bin
+          cp -r wasm-repo/* _site/bin/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

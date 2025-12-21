@@ -35,5 +35,6 @@ Suggests:
     shinylive,
     DT,
     htmltools,
-    tidyquant
+    tidyquant,
+    scales
 VignetteBuilder: knitr, quarto
