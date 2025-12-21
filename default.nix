@@ -309,13 +309,9 @@ let
 # The Nix shellHook uses DOUBLE QUOTES <shellHook = ...>, NOT single quotes.
 #
 # ESCAPING RULES:
-# 1. In this R raw string: Use \\$ for shell variables (becomes \$ in default.nix)
-# 2. In default.nix: \\$ inside double quotes causes SYNTAX ERROR
+# 1. In default.nix shellHook: use unquoted $HOME paths
+# 2. Avoid escaped dollar signs in shellHook paths to ensure expansion
 # 3. SOLUTION: Remove quotes around paths with $HOME or use unquoted $HOME
-#
-# CORRECT (in R raw string): mkdir -p \\$HOME/.config/positron
-# GENERATES (in default.nix): mkdir -p \$HOME/.config/positron
-# IN NIX SHELL (runtime): mkdir -p /Users/username/.config/positron
 #
 # ❌ WRONG: mkdir -p with quotes around escaped-dollar-HOME path variable
 # → Generates: mkdir -p with quoted escaped dollar which is INVALID
@@ -353,7 +349,7 @@ let
 
 # 1. Create the temporary wrapper script in a stable location
 # Use inline expansion to avoid creating literal $WRAPPER_* files
-mkdir -p \\$HOME/.config/positron
+mkdir -p $HOME/.config/positron
 
 # The derivation output path from nix-build is stored at the GC root symlink.
 # We read the absolute path of the built environment from this symlink.
@@ -363,7 +359,7 @@ if [ -z \"$NIX_SHELL_PATH\" ]; then
     NIX_SHELL_PATH=\"$out\" 
 fi
 
-cat > \\$HOME/.config/positron/nix-terminal-wrapper.sh <<EOF
+cat > $HOME/.config/positron/nix-terminal-wrapper.sh <<EOF
 #!/bin/bash
 
 printf '%s\n' 'Activating Nix shell environment...'
@@ -408,8 +404,8 @@ exec /usr/bin/env bash --rcfile ~/.nix-shell-bashrc -i
 EOF
 
 # 2. Make the script executable and export path for RStudio/Positron
-chmod +x \\$HOME/.config/positron/nix-terminal-wrapper.sh
-export RSTUDIO_TERM_EXEC=\\$HOME/.config/positron/nix-terminal-wrapper.sh
+chmod +x $HOME/.config/positron/nix-terminal-wrapper.sh
+export RSTUDIO_TERM_EXEC=$HOME/.config/positron/nix-terminal-wrapper.sh
 
 # 3. Disable user Makevars to prevent Homebrew path conflicts
 # User's ~/.R/Makevars may contain Homebrew-specific paths (e.g., /opt/homebrew/opt/libomp)
