@@ -110,7 +110,7 @@ jobs:
 
       - name: Install shinylive (dev)
         run: |
-          Rscript -e 'pak::pkg_install("rstudio/shinylive")'
+          Rscript -e 'pak::pkg_install("posit-dev/r-shinylive")'
 
       - name: Build Site
         run: |
