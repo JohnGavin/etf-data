@@ -5,8 +5,25 @@ Imports: crosstalk, htmltools (>= 0.3.6), htmlwidgets (>= 1.3),
 Suggests: bslib, future, httpuv, knitr (>= 1.8), rmarkdown, shiny (>=
         1.6), testit, tibble
 License: MIT + file LICENSE
-MD5sum: 89ea7ff15fde7aaa87dd72fa32996763
+MD5sum: 1fab63eabafb4ee46c5d11cd203a6ac9
 NeedsCompilation: no
+
+Package: RColorBrewer
+Version: 1.1-3
+Depends: R (>= 2.0.0)
+License: Apache License 2.0
+MD5sum: 4093409e40dde41d781dfc395c30ba59
+NeedsCompilation: no
+
+Package: S7
+Version: 0.2.1
+Depends: R (>= 3.5.0)
+Imports: utils
+Suggests: bench, callr, covr, knitr, methods, rmarkdown, testthat (>=
+        3.2.0), tibble
+License: MIT + file LICENSE
+MD5sum: 64b111741566e676639d4edd0a3d4649
+NeedsCompilation: yes
 
 Package: TTR
 Version: 0.24.4
@@ -75,8 +92,15 @@ Imports: dplyr, httr2, janitor, logger, lubridate, magrittr, purrr,
 Suggests: ggplot2, knitr, rmarkdown, targets, quarto, visNetwork,
         DiagrammeR, shinylive, DT, htmltools, tidyquant, scales
 License: MIT + file LICENSE
-MD5sum: 82a10c2e0ecfe43be30788435338a04c
+MD5sum: c374b0d29a262bd691e796446b07ff22
 NeedsCompilation: no
+
+Package: farver
+Version: 2.1.2
+Suggests: covr, testthat (>= 3.0.0)
+License: MIT + file LICENSE
+MD5sum: c2232e9d1de00772e79736816bdf70a9
+NeedsCompilation: yes
 
 Package: ggplot2
 Version: 4.0.1
@@ -92,6 +116,15 @@ Suggests: broom, covr, dplyr, ggplot2movies, hexbin, Hmisc, hms, knitr,
 Enhances: sp
 License: MIT + file LICENSE
 MD5sum: a211fe7d00d92899835b6c5705a0d871
+NeedsCompilation: no
+
+Package: gtable
+Version: 0.3.6
+Depends: R (>= 4.0)
+Imports: cli, glue, grid, lifecycle, rlang (>= 1.1.0), stats
+Suggests: covr, ggplot2, knitr, profvis, rmarkdown, testthat (>= 3.0.0)
+License: MIT + file LICENSE
+MD5sum: a5253d26aee7cbcad6a848b22af78266
 NeedsCompilation: no
 
 Package: htmltools
@@ -119,6 +152,16 @@ License: MIT + file LICENSE
 MD5sum: 50b3eb7d11cbe8a50831982c9dc45136
 NeedsCompilation: no
 
+Package: isoband
+Version: 0.3.0
+Imports: cli, grid, rlang, utils
+LinkingTo: cpp11
+Suggests: covr, ggplot2, knitr, magick, bench, rmarkdown, sf, testthat
+        (>= 3.0.0), xml2
+License: MIT + file LICENSE
+MD5sum: a9ce76e05b19ffe5975582fce1c2df04
+NeedsCompilation: yes
+
 Package: janitor
 Version: 2.2.1
 Depends: R (>= 3.1.2)
@@ -129,6 +172,13 @@ Suggests: dbplyr, knitr, rmarkdown, RSQLite, sf, testthat (>= 3.0.0),
         tibble, tidygraph
 License: MIT + file LICENSE
 MD5sum: 9f50fede9e3b7f58c3c310b26fc5bd38
+NeedsCompilation: no
+
+Package: labeling
+Version: 0.4.3
+Imports: stats, graphics
+License: MIT + file LICENSE | Unlimited
+MD5sum: e58128e9b88260e5a58d3af96ff4f13d
 NeedsCompilation: no
 
 Package: lubridate
@@ -182,6 +232,17 @@ Suggests: covr, curl, datasets, knitr, rmarkdown, spelling, stringi,
 License: MIT + file LICENSE
 MD5sum: a82c0af588271a3e9dbc59a9d9735f9f
 NeedsCompilation: yes
+
+Package: scales
+Version: 1.4.0
+Depends: R (>= 4.1)
+Imports: cli, farver (>= 2.0.3), glue, labeling, lifecycle, R6,
+        RColorBrewer, rlang (>= 1.1.0), viridisLite
+Suggests: bit64, covr, dichromat, ggplot2, hms (>= 0.5.0), stringi,
+        testthat (>= 3.0.0)
+License: MIT + file LICENSE
+MD5sum: be660ba067fb29842787665e6bc23b3f
+NeedsCompilation: no
 
 Package: shiny
 Version: 1.11.1.8000
@@ -247,6 +308,14 @@ License: MIT + file LICENSE
 MD5sum: 7a10d822ba244b83bfc6b724faa08f2e
 NeedsCompilation: yes
 
+Package: viridisLite
+Version: 0.4.2
+Depends: R (>= 2.10)
+Suggests: hexbin (>= 1.27.0), ggplot2 (>= 1.0.1), testthat, covr
+License: MIT + file LICENSE
+MD5sum: 1a2db69da904506c02885aede4077926
+NeedsCompilation: no
+
 Package: vroom
 Version: 1.6.5.9000
 Depends: R (>= 3.6)
@@ -269,7 +338,7 @@ Imports: methods
 LinkingTo: zoo
 Suggests: timeSeries, timeDate, tseries, chron, tinytest
 License: GPL (>= 2)
-MD5sum: 371ba88c0ccd8bec6dfa383b089e0b0b
+MD5sum: 39a84659d56c6b4262664cf2446c60fb
 NeedsCompilation: yes
 
 Package: zoo
