@@ -25,7 +25,7 @@ jobs:
         uses: r-wasm/actions/build-rwasm@v2
         with:
           packages: |
-            .
+            ./etfdata
             shiny
             dplyr
             ggplot2
@@ -50,15 +50,15 @@ jobs:
             TTR
             xts
             zoo
-          repo-path: ../wasm-repo
-          image-path: ../wasm-image
+          repo-path: wasm-repo
+          image-path: wasm-image
           strip: "demo, doc, examples, help, html, include, tests, vignette"
 
       - name: Upload WASM artifact
         uses: actions/upload-artifact@v4
         with:
           name: wasm-bin
-          path: ../wasm-repo
+          path: wasm-repo
 
   deploy:
     needs: build-wasm
