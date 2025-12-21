@@ -57,7 +57,7 @@ jobs:
             TTR
             xts
             zoo
-          repo-path: bin
+          repo-path: wasm-repo
           image-path: wasm-image
           strip: "demo, doc, examples, help, html, include, tests, vignette"
 
@@ -72,7 +72,7 @@ jobs:
         run: |
           mkdir -p gh-pages/bin
           rm -rf gh-pages/bin/*
-          cp -r bin/* gh-pages/bin/
+          cp -r wasm-repo/bin/* gh-pages/bin/
         working-directory: .
 
       - name: Commit and push bin updates

@@ -105,7 +105,12 @@ jobs:
             any::tarchetypes
             any::devtools
             any::visNetwork
+            any::pak
           working-directory: 'etfdata'
+
+      - name: Install shinylive (dev)
+        run: |
+          Rscript -e 'pak::pkg_install("rstudio/shinylive")'
 
       - name: Build Site
         run: |
@@ -124,7 +129,7 @@ jobs:
       - name: Stage WASM repo
         run: |
           mkdir -p _site/bin
-          cp -r wasm-repo/* _site/bin/
+          cp -r wasm-repo/bin/* _site/bin/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
