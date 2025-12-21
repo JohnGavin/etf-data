@@ -58,6 +58,21 @@ history %>%
   theme(legend.position = "none")
 ```
 
+Example output (cached snapshot):
+
+```
+# A tibble: 5 x 6
+  ticker name                                  isin         currency aum_text     ter_text
+  <chr>  <chr>                                 <chr>        <chr>    <chr>        <chr>
+1 VUSA.L Vanguard S&P 500 UCITS ETF            IE00B3XXRP09 GBP      GBP 36,957 m 0.07% p.a.
+2 CSPX.L iShares Core S&P 500 UCITS ETF        IE00B5BMR087 GBP      GBP 98,470 m 0.07% p.a.
+3 INRG.L iShares Global Clean Energy UCITS ETF IE00B1XNHC34 GBP      GBP 1,889 m  0.65% p.a.
+4 EQQQ.L Invesco EQQQ Nasdaq-100 UCITS ETF     IE0032077012 GBP      GBP 8,283 m  0.30% p.a.
+5 VWRL.L Vanguard FTSE All-World UCITS ETF     IE00B3RBWM25 GBP      GBP 16,116 m 0.19% p.a.
+```
+
+![VUSA.L Close Price (Cached Snapshot)](man/figures/README-example.png)
+
 ## JustETF Screener
 
 You can also fetch a live list of ETFs directly from the JustETF screener API, allowing you to filter by AUM (Assets Under Management) and TER (Total Expense Ratio).
@@ -67,6 +82,20 @@ You can also fetch a live list of ETFs directly from the JustETF screener API, a
 screener_data <- fetch_justetf_screener(min_aum_gbp = 200, max_ter = 0.75)
 
 print(head(screener_data))
+```
+
+Example output (cached snapshot):
+
+```
+# A tibble: 6 x 6
+  isin         aum_text     ter_text   ticker name                         currency
+  <chr>        <chr>        <chr>      <chr>  <chr>                        <chr>
+1 IE00B3XXRP09 GBP 36,957 m 0.07% p.a. VUSA.L Vanguard S&P 500 UCITS ETF   GBP
+2 IE00B5BMR087 GBP 98,470 m 0.07% p.a. CSPX.L iShares Core S&P 500 UCITS ETF GBP
+3 IE00B1XNHC34 GBP 1,889 m  0.65% p.a. INRG.L iShares Global Clean Energy UCITS ETF GBP
+4 IE0032077012 GBP 8,283 m  0.30% p.a. EQQQ.L Invesco EQQQ Nasdaq-100 UCITS ETF GBP
+5 IE00B3RBWM25 GBP 16,116 m 0.19% p.a. VWRL.L Vanguard FTSE All-World UCITS ETF GBP
+6 IE0005042456 GBP 13,494 m 0.07% p.a. ISF.L  iShares Core FTSE 100 UCITS ETF GBP
 ```
 
 ## Reproducibility with Nix
