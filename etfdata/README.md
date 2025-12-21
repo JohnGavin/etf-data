@@ -88,10 +88,19 @@ Install the package into your user library inside the nix shell (once per shell)
 ```bash
 R CMD INSTALL --library=$HOME/.Rlibs_etf etfdata
 ```
-Then run the examples (e.g. print the universe):
+Then run the examples (e.g. print the universe). Use one of the following options:
+
+Option A: Load the package directly from source (no install step needed):
 ```bash
-Rscript -e "library(etfdata); packageVersion('etfdata'); str(get_etf_universe())"
+Rscript --vanilla -e 'devtools::load_all("etfdata"); packageVersion("etfdata"); str(get_etf_universe())'
 ```
+
+Option B: Use your custom library path explicitly:
+```bash
+R_LIBS_USER=$HOME/.Rlibs_etf Rscript --vanilla -e 'library(etfdata); packageVersion("etfdata"); str(get_etf_universe())'
+```
+
+Note: `devtools` is included in the Nix development shell for convenience, but it is not a runtime dependency of the `etfdata` package.
 
 Expected output:
 ```

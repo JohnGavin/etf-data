@@ -43,7 +43,7 @@ webr:
     - munsell
     - scales
   repos:
-    - https://johngavin.github.io/etf-data/bin/
+    - https://johngavin.github.io/etf-data/
 vignette: >
   %\VignetteIndexEntry{ETF Data Dashboard (Shinylive)}
   %\VignetteEngine{quarto::html}
@@ -64,7 +64,7 @@ This vignette presents an interactive Shiny dashboard, powered by Shinylive and 
 #| standalone: true
 #| viewerHeight: 800
 
-webr_repo <- "https://johngavin.github.io/etf-data/bin/"
+webr_repo <- "https://johngavin.github.io/etf-data/"
 options(repos = c(CRAN = webr_repo))
 
 ensure_webr_packages <- function(pkgs) {

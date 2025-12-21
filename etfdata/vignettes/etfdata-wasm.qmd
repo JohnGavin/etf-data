@@ -21,7 +21,7 @@ webr:
     - quantmod
     - etfdata
   repos:
-    - https://johngavin.github.io/etf-data/bin/
+    - https://johngavin.github.io/etf-data/
 vignette: >
   %\VignetteIndexEntry{etfdata in WebAssembly (WASM)}
   %\VignetteEngine{quarto::html}
@@ -54,43 +54,53 @@ if (n_pkgs > 6) {
 
 ## Data Analysis Example
 
-We retrieve the ETF universe included in the package and fetch price history.
-
-*Note: Fetching data from Yahoo Finance (via `fetch_price_history`) might be blocked by CORS policies in the browser. If it fails, we default to the universe data.*
+We retrieve the ETF universe included in the package and attempt one live download per ticker with a short timeout. This block uses live data only (no cached fallback).
 
 ```{webr-r}
-#| caption: "Real Data Analysis"
+#| caption: "Real Data Analysis (One Attempt per Ticker)"
 # 1. Get Universe (from package data)
 universe <- etfdata::get_etf_universe(n = 5)
 print("ETF Universe (Top 5):")
 print(universe)
 
-# 2. Try to Fetch History (Yahoo)
-# Wrapping in tryCatch due to potential CORS issues in WASM
-history <- tryCatch({
-  # Attempt to fetch for the first ticker
-  ticker <- universe$ticker[1]
-  print(paste("Attempting to fetch history for:", ticker))
-  etfdata::fetch_price_history(ticker, start_date = "2023-01-01")
-}, error = function(e) {
-  message("Could not fetch price history (likely CORS blocked): ", e$message)
-  return(NULL)
-})
+# 2. Try to Fetch History (Yahoo) with a short timeout
+timeout_seconds <- 8
+old_timeout <- getOption("timeout")
+options(timeout = timeout_seconds)
 
-if (!is.null(history)) {
-  print(head(history))
-  
-  # Plot
-  ggplot(history, aes(x = date, y = close)) +
+fetch_once <- function(ticker) {
+  message("Attempting download: ", ticker)
+  tryCatch(
+    etfdata::fetch_price_history(ticker, start_date = "2023-01-01"),
+    error = function(e) {
+      message("Download failed for ", ticker, ": ", e$message)
+      NULL
+    }
+  )
+}
+
+tickers <- universe$ticker
+history_list <- lapply(tickers, fetch_once)
+options(timeout = old_timeout)
+
+rows <- vapply(history_list, function(x) if (is.null(x)) 0L else nrow(x), integer(1))
+summary_tbl <- tibble::tibble(ticker = tickers, rows = rows, ok = rows > 0)
+print(summary_tbl)
+cat(sprintf(
+  "Succeeded: %d/%d | Failed: %d\n",
+  sum(rows > 0),
+  length(tickers),
+  sum(rows == 0)
+))
+
+if (any(rows > 0)) {
+  first_ok <- history_list[[which(rows > 0)[1]]]
+  ggplot(first_ok, aes(x = date, y = close)) +
     geom_line(color = "darkblue") +
-    labs(title = paste("Price History:", universe$ticker[1]), y = "Close Price") +
+    labs(title = paste("Price History:", first_ok$ticker[1]), y = "Close Price") +
     theme_minimal()
 } else {
-  # Fallback plot using universe data (e.g. dummy AUM/Currency)
-  ggplot(universe, aes(x = currency)) +
-    geom_bar(fill = "steelblue") +
-    labs(title = "Universe Composition by Currency", y = "Count") +
-    theme_minimal()
+  print("No live downloads succeeded in this browser session.")
 }
 ```
 
