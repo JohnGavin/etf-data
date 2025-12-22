@@ -49,3 +49,4 @@
 #   - success
 # Rscript --vanilla -e 'setwd("etfdata"); usethis::pr_push()'
 #   - branch pushed and PR URL generated
+# Edited .github/workflows/deploy-docs.yml to add pull_request trigger and skip deploy job for PRs.
