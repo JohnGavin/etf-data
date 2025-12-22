@@ -20,6 +20,8 @@ data_loaded <- FALSE
 universe <- NULL
 metadata <- NULL
 history <- NULL
+history_summary <- NULL
+snapshot_info <- list(generated_at = NULL, source = NULL)
 is_ci <- identical(Sys.getenv("CI"), "true")
 
 tryCatch({
@@ -45,6 +47,9 @@ tryCatch({
     universe <- snap$universe
     metadata <- snap$metadata
     history <- snap$history
+    history_summary <- snap$history_summary
+    snapshot_info$generated_at <- snap$generated_at
+    snapshot_info$source <- snap$source
     data_loaded <- TRUE
   } else {
     # Robust fallback to targets
@@ -63,6 +68,11 @@ tryCatch({
         universe <- tar_read(universe)
         metadata <- tar_read(metadata)
         history <- tar_read(history)
+        tmp_summary <- try(tar_read(history_summary), silent = TRUE)
+        if (!inherits(tmp_summary, "try-error")) {
+          history_summary <- tmp_summary
+        }
+        snapshot_info$source <- "targets"
         data_loaded <- TRUE
       }, silent = TRUE)
     }
@@ -74,32 +84,30 @@ tryCatch({
 
 ## ETF Universe
 
-We start by defining the universe of European UCITS ETFs. 
-
-**Note:** The data displayed in this vignette is a subset (Top 5 by AUM) generated during the build process.
+We start by defining the universe of European UCITS ETFs listed on the LSE.
+This universe is precomputed during CI to avoid browser CORS restrictions.
 
 The logic used to retrieve the universe list is:
 
 ```{r universe-code}
 #| echo: true
 #| eval: false
-get_etf_universe <- function() {
-  path <- system.file("extdata", "seed_universe.csv", package = "etfdata")
+get_etf_universe <- function(n = 20) {
+  path <- system.file("extdata", "etf_universe.csv", package = "etfdata")
   if (path == "") {
-    # Fallback for development if package not installed
-    path <- "inst/extdata/seed_universe.csv"
+    path <- "inst/extdata/etf_universe.csv"
   }
-  
-  if (!file.exists(path)) {
-    # Try one level up if running from package root
-    if (file.exists("inst/extdata/seed_universe.csv")) {
-        path <- "inst/extdata/seed_universe.csv"
-    } else {
-        stop("Seed universe file not found at: ", path)
-    }
+  if (file.exists(path)) {
+    res <- readr::read_csv(path, show_col_types = FALSE)
+    return(utils::head(res, n))
   }
-  
-  readr::read_csv(path, show_col_types = FALSE)
+
+  seed_path <- system.file("extdata", "seed_universe.csv", package = "etfdata")
+  if (seed_path == "") {
+    seed_path <- "inst/extdata/seed_universe.csv"
+  }
+  res <- readr::read_csv(seed_path, show_col_types = FALSE)
+  utils::head(res, n)
 }
 ```
 
@@ -107,6 +115,9 @@ get_etf_universe <- function() {
 #| echo: false
 #| eval: true
 if (data_loaded && !is.null(universe)) {
+  if (!is.null(snapshot_info$generated_at)) {
+    message("Snapshot generated at: ", format(snapshot_info$generated_at))
+  }
   knitr::kable(head(universe, 10))
   print(head(universe, 10))
 } else {
@@ -116,72 +127,14 @@ if (data_loaded && !is.null(universe)) {
 
 ## Metadata (JustETF)
 
-We scrape JustETF for metadata including AUM and TER. The underlying scraping logic (simplified) looks like this:
+Metadata comes from the JustETF screener table (full universe), which includes
+fund size and TER for LSE-listed UCITS. The pipeline uses the screener result
+as the cached metadata snapshot.
 
 ```{r metadata-code}
 #| echo: true
 #| eval: false
-fetch_etf_metadata <- function(isin) {
-  # Handle vector input
-  if (length(isin) > 1) {
-    return(purrr::map_dfr(isin, fetch_etf_metadata))
-  }
-
-  url <- paste0("https://www.justetf.com/uk/etf-profile.html?isin=", isin)
-  
-  # Polite delay
-  Sys.sleep(runif(1, 1, 2))
-  
-  req <- request(url) %>%
-    req_headers("User-Agent" = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/115.0")
-  
-  resp <- try(req_perform(req), silent = TRUE)
-  
-  if (inherits(resp, "try-error")) {
-    warning("Failed to fetch metadata for ", isin)
-    return(tibble(isin = isin))
-  }
-  
-  if (resp_status(resp) != 200) {
-    warning("HTTP error ", resp_status(resp), " for ", isin)
-    return(tibble(isin = isin))
-  }
-  
-  html <- resp_body_html(resp)
-  tables <- html_table(html)
-  
-  # Helper to extract value from key-value tables (X1, X2)
-  get_val <- function(key_pattern) {
-    # Search all tables for the key
-    for (tbl in tables) {
-      if (ncol(tbl) >= 2) {
-        # Check if first col contains key
-        match <- tbl[str_detect(tbl[[1]], key_pattern), ]
-        if (nrow(match) > 0) {
-          return(match[[2]][1])
-        }
-      }
-    }
-    return(NA_character_)
-  }
-  
-  # Extract fields
-  aum_raw <- get_val("Fund size")
-  ter_raw <- get_val("Total expense ratio")
-  replication <- get_val("Replication")
-  dist_policy <- get_val("Distribution policy")
-  domicile <- get_val("Fund domicile")
-  
-  tibble(
-    isin = isin,
-    aum_text = aum_raw,
-    ter_text = ter_raw,
-    replication = replication,
-    distribution = dist_policy,
-    domicile = domicile,
-    source_url = url
-  )
-}
+metadata <- fetch_justetf_screener(min_aum_gbp = 0, max_ter = Inf)
 ```
 
 ```{r metadata-table}
@@ -202,7 +155,12 @@ if (data_loaded && !is.null(metadata)) {
 
 ## JustETF Screener API
 
-In addition to scraping specific ISINs, we can query the JustETF screener directly to find ETFs meeting specific criteria (e.g., AUM > £200m, TER < 0.75%).
+In addition to the cached snapshot, we can query the JustETF screener directly
+to find ETFs meeting specific criteria (e.g., AUM > £200m, TER < 0.75%). Browser
+builds use the cached snapshot because cross-site requests are blocked by CORS.
+The snapshot is built from a curated ETF universe list and incremental Yahoo
+price downloads (only missing dates are fetched). See
+`docs/wiki/ETF_Data_Sources.md` for details.
 
 ```{r screener-code}
 #| echo: true
@@ -213,7 +171,9 @@ print(head(screener_results))
 
 ## Price History (Yahoo Finance)
 
-We fetch daily price history from Yahoo Finance using `quantmod`.
+We fetch daily price history from Yahoo Finance using `quantmod`. For the
+snapshot, we attempt a single download per ticker with a short timeout and
+store the results for use in WebR/Shinylive.
 
 ```{r history-code}
 #| echo: true
@@ -237,6 +197,9 @@ if (is_ci) {
       theme(legend.position = "none")
   )
   print(history)
+  if (!is.null(history_summary)) {
+    print(head(history_summary, 10))
+  }
 }
 ```
 
@@ -259,19 +222,49 @@ if (data_loaded && !is.null(history) && !is.null(metadata)) {
   
   if ("isin" %in% colnames(universe) && "isin" %in% colnames(metadata)) {
     combined <- universe %>%
-      inner_join(metadata, by = "isin") %>%
+      inner_join(metadata, by = "isin") 
+
+    if (!"ticker" %in% names(combined)) {
+      ticker_cols <- intersect(c("ticker", "ticker.x", "ticker.y", "ticker_meta"), names(combined))
+      if (length(ticker_cols) > 0) {
+        combined <- combined %>%
+          dplyr::mutate(
+            ticker = dplyr::coalesce(!!!rlang::syms(ticker_cols))
+          ) %>%
+          dplyr::select(-dplyr::any_of(setdiff(ticker_cols, "ticker")))
+      }
+    }
+
+    combined <- combined %>%
       inner_join(avg_vol, by = "ticker")
     
     if (requireNamespace("stringr", quietly = TRUE) && requireNamespace("dplyr", quietly = TRUE)) {
-       combined <- bind_cols(combined, parse_aum(combined$aum_text))
+      if ("aum_text" %in% names(combined) && any(!is.na(combined$aum_text))) {
+        combined <- bind_cols(combined, parse_aum(combined$aum_text))
+      } else {
+        combined <- combined %>%
+          dplyr::mutate(
+            aum_amount = NA_real_,
+            aum_units = NA_character_,
+            total_amount = NA_real_
+          )
+      }
     }
 
     if (requireNamespace("readr", quietly = TRUE) && requireNamespace("stringr", quietly = TRUE)) {
-      combined <- combined %>%
-        mutate(
-          ter_val = readr::parse_number(ter_text),
-          ter_units = stringr::str_extract(ter_text, "[%]") 
-        )
+      if ("ter_text" %in% names(combined)) {
+        combined <- combined %>%
+          mutate(
+            ter_val = readr::parse_number(ter_text),
+            ter_units = stringr::str_extract(ter_text, "[%]") 
+          )
+      } else {
+        combined <- combined %>%
+          mutate(
+            ter_val = NA_real_,
+            ter_units = NA_character_
+          )
+      }
     }
 
     cols_to_show <- c("ticker", "name", "currency", "aum_amount", "aum_units", "avg_daily_vol", "ter_val")
@@ -318,7 +311,11 @@ if (exists("combined") && "ter_val" %in% colnames(combined) && requireNamespace(
 
 ```{r combined-plot-static, echo=FALSE}
 if (!exists("combined") || !requireNamespace("ggplot2", quietly = TRUE)) {
-  knitr::include_graphics("combined_plot.png")
+  if (file.exists("combined_plot.png")) {
+    knitr::include_graphics("combined_plot.png")
+  } else {
+    cat("Static plot not available for this build.\n")
+  }
 }
 ```
 

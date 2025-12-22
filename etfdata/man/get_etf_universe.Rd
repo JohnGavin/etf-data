@@ -9,7 +9,7 @@ get_etf_universe(n = 20, live = FALSE, file = NULL)
 \arguments{
 \item{n}{Integer. Maximum number of ETFs to return. Default is 20. Set to Inf for all.}
 
-\item{live}{Logical. If TRUE, attempts to fetch the latest universe from an external source (not yet implemented, returns cached data with warning).}
+\item{live}{Logical. If TRUE, attempts to fetch the latest universe from an external source.}
 
 \item{file}{Character. Path to a local CSV file to read the universe from. Overrides \code{live} and default cache.}
 }
@@ -17,7 +17,8 @@ get_etf_universe(n = 20, live = FALSE, file = NULL)
 A tibble with columns: ticker, name, isin, currency
 }
 \description{
-Retrieves the list of ETFs to track.
+Retrieves the list of ETFs to track. Prefers the curated universe file
+when available, then falls back to the cached snapshot or seed list.
 }
 \examples{
 \dontrun{

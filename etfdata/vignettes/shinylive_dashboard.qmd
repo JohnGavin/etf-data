@@ -51,7 +51,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This vignette presents an interactive Shiny dashboard, powered by Shinylive and WebR, allowing you to explore and filter ETF data directly in your browser.
+This vignette presents an interactive Shiny dashboard, powered by Shinylive and WebR, allowing you to explore and filter ETF data directly in your browser. Live HTTP requests are blocked by the browser sandbox, so the dashboard uses a cached snapshot generated during CI from the curated universe list and incremental price downloads. See `docs/wiki/ETF_Data_Sources.md` for details.
 
 ```{r setup, include=FALSE}
 # These libraries are implicitly loaded by shinylive configuration
@@ -104,114 +104,49 @@ library(stringr)
 
 # --- Helper Functions (Embedded for WASM) ---
 
-fetch_justetf_screener <- function(min_aum_gbp = 200, max_ter = 0.75) {
-  
-  # Endpoint often used by the screener
-  # Note: This is an internal API and may change.
-  url <- "https://www.justetf.com/api/etfs/en/search"
-  
-  # Construct the request
-  # 'draw', 'start', 'length' are DataTables parameters
-  # 'lang' and 'country' usually passed in body or query
-  req <- httr2::request(url) %>%
-    httr2::req_body_json(list(
-      draw = 1,
-      start = 0,
-      length = -1, # Fetch all
-      search = list(value = "", regex = FALSE),
-      # Filter for LSE listings roughly corresponds to `exchange` or similar params in some variations
-      # But often the main search returns all. We filter post-fetch.
-      # However, we can try to restrict to ETFs available in UK.
-      country = "GB",
-      universeType = "private"
-    )) %>%
-    httr2::req_headers(
-      "User-Agent" = "Mozilla/5.0 (R; etfdata package)",
-      "Content-Type" = "application/json"
-    )
-  
-  # Perform request
-  resp <- httr2::req_perform(req)
-  
-  # Parse JSON
-  json_data <- httr2::resp_body_json(resp)
-  
-  # Extract the 'data' element which contains the list
-  if (is.null(json_data$data)) {
-    warning("No data found in JustETF response.")
-    return(dplyr::tibble())
+load_snapshot <- function() {
+  if (!file.exists("vignette_data.rds")) {
+    return(NULL)
   }
-  
-  # Convert to tibble
-  # The list items might be varying in length/structure, bind_rows usually handles it
-  df <- dplyr::bind_rows(json_data$data) %>%
-    janitor::clean_names()
-  
-  if (nrow(df) == 0) {
-    return(df)
-  }
-  
-  # Process and Filter
-  # Fields often returned: "isin", "name", "ter", "fund_size", "currency", etc.
-  # AUM and TER come as formatted strings often (e.g. "0.07%", "1,234 m").
-  
-  df_clean <- df %>%
-    # Parse TER: Remove '%' and convert to numeric
-    dplyr::mutate(
-      ter_num = readr::parse_number(as.character(.data$ter))
-    ) %>%
-    # Parse AUM: Handle 'm' (millions) or 'bn' (billions) if present, though JustETF usually normalizes to millions in some views
-    # Often it is just a formatted number.
-    dplyr::mutate(
-      aum_num = readr::parse_number(as.character(.data$fund_size))
-    )
-    
-  # Apply filters
-  # Note: AUM in JustETF search is often in the user's locale currency or GBP if country=GB?
-  # Usually it's in GBP for country=GB.
-  # LSE Listing: The search API usually returns metadata. 
-  # It does NOT always explicitly list all exchanges in the main table.
-  # We assume "country=GB" context implies available in UK, likely LSE.
-  
-  df_filtered <- df_clean %>%
-    dplyr::filter(
-      .data$aum_num >= min_aum_gbp,
-      .data$ter_num <= max_ter
-    )
-  
-  return(df_filtered)
+  readRDS("vignette_data.rds")
 }
 
 # Cached screener snapshot for browser-safe use
-get_cached_screener_data <- function(min_aum_gbp = 0, max_ter = 100) {
-  if (!file.exists("vignette_data.rds")) {
+get_cached_screener_data <- function(min_aum_gbp = 0, max_ter = Inf) {
+  snap <- load_snapshot()
+  if (is.null(snap) || !all(c("metadata", "universe") %in% names(snap))) {
     return(dplyr::tibble())
   }
-  snap <- readRDS("vignette_data.rds")
-  if (!all(c("metadata", "universe") %in% names(snap))) {
-    return(dplyr::tibble())
+
+  meta <- snap$metadata
+  if (!"aum_num" %in% names(meta) && "aum_text" %in% names(meta)) {
+    meta <- meta |> dplyr::mutate(aum_num = readr::parse_number(.data$aum_text))
   }
-  snap$metadata |>
-    dplyr::mutate(
-      aum_num = readr::parse_number(.data$aum_text),
-      ter_num = readr::parse_number(.data$ter_text)
-    ) |>
+  if (!"ter_num" %in% names(meta) && "ter_text" %in% names(meta)) {
+    meta <- meta |> dplyr::mutate(ter_num = readr::parse_number(.data$ter_text))
+  }
+
+  meta |>
     dplyr::left_join(snap$universe, by = "isin") |>
     dplyr::filter(
-      .data$aum_num >= min_aum_gbp,
-      .data$ter_num <= max_ter
+      is.na(.data$aum_num) | .data$aum_num >= min_aum_gbp,
+      is.na(.data$ter_num) | .data$ter_num <= max_ter
     )
 }
 
 # --- Data (Embedded for WASM) ---
 
-# Static seed list if live fetch fails (Embedded string removed, reading file)
-# Since we cannot easily read file in WASM unless uploaded/available,
-# we will rely on fetch_justetf_screener for "Live" data and fail gracefully.
-# But user requested "seed_universe.csv" resource usage.
-# We attempt to read it from current directory (if copied by resources).
+# Static seed list fallback if the cached snapshot is missing.
+# We attempt to read the file from the current directory (resources).
 
 get_etf_universe_static <- function(n = Inf) {
+  snap <- load_snapshot()
+  if (!is.null(snap$universe)) {
+    if (is.finite(n) && n < nrow(snap$universe)) {
+      return(head(snap$universe, n))
+    }
+    return(snap$universe)
+  }
   if (file.exists("seed_universe.csv")) {
     seed_universe <- readr::read_csv("seed_universe.csv", show_col_types = FALSE)
     if (is.finite(n) && n < nrow(seed_universe)) {
@@ -219,7 +154,7 @@ get_etf_universe_static <- function(n = Inf) {
     }
     return(seed_universe)
   }
-  return(NULL)
+  NULL
 }
 
 # --- App UI & Server ---
@@ -231,6 +166,7 @@ ui <- htmltools::tagList(
     sidebarLayout(
       sidebarPanel(
         p("Explore the universe of ETFs."),
+        verbatimTextOutput("snapshotInfo"),
         selectInput("currencyFilter",
                     "Filter by Currency:",
                     choices = c("All", "GBP", "USD", "EUR"),
@@ -240,8 +176,7 @@ ui <- htmltools::tagList(
                     min = 0,
                     max = 10000,
                     value = 0,
-                    step = 100),
-        actionButton("fetchLive", "Fetch Live JustETF Data")
+                    step = 100)
       ),
       mainPanel(
         h3("Filtered ETF Data"),
@@ -259,65 +194,32 @@ server <- function(input, output, session) {
   # Load data
   universe_data <- reactiveVal(NULL)
 
-  # Initial Load
-  observe({
-    # Try to load local seed file first
-    static <- get_etf_universe_static()
-    
-    if (!is.null(static)) {
-        static <- static %>% mutate(currency = as.character(currency))
-        
-        if (input$currencyFilter != "All") {
-          static <- static %>% filter(currency == input$currencyFilter)
-        }
-        universe_data(static)
-    } else {
-        # If no static file, try fetch immediately (might fail if CORS)
-        # Using isolate to avoid loop
-        isolate({
-             showNotification("Fetching live data...", duration = 3)
-             res <- tryCatch({
-               fetch_justetf_screener(min_aum_gbp = 0, max_ter = 100)
-             }, error = function(e) {
-               message("Live screener blocked: ", e$message)
-               dplyr::tibble()
-             })
-             if (nrow(res) > 0) {
-               universe_data(res)
-             } else {
-               cached <- get_cached_screener_data(min_aum_gbp = 0, max_ter = 100)
-               if (nrow(cached) > 0) {
-                 showNotification("Using cached screener snapshot.", type = "message", duration = 5)
-                 universe_data(cached)
-               }
-             }
-        })
+  output$snapshotInfo <- renderText({
+    snap <- load_snapshot()
+    if (is.null(snap)) {
+      return("Snapshot: not available")
     }
+    updated <- if (!is.null(snap$generated_at)) format(snap$generated_at) else "unknown"
+    source <- if (!is.null(snap$source)) snap$source else "cached"
+    rows <- if (!is.null(snap$metadata)) nrow(snap$metadata) else 0
+    paste0("Snapshot: ", updated, " | Source: ", source, " | Rows: ", rows)
   })
 
-  # Event for fetching live data
-  observeEvent(input$fetchLive, {
-    showNotification("Attempting to fetch live data...", duration = 5)
-    
-    fetched_data <- tryCatch(
-      fetch_justetf_screener(min_aum_gbp = input$minAUM),
-      error = function(e) {
-        message("Error fetching live data: ", e$message)
-        dplyr::tibble()
-      }
-    )
-    if (nrow(fetched_data) > 0) {
-      universe_data(fetched_data)
-      showNotification("Live data fetched successfully!", type = "message", duration = 5)
-    } else {
-      cached <- get_cached_screener_data(min_aum_gbp = input$minAUM, max_ter = 100)
-      if (nrow(cached) > 0) {
-        universe_data(cached)
-        showNotification("Live fetch blocked; using cached snapshot.", type = "warning", duration = 7)
-      } else {
-        showNotification("Failed to fetch live data or no data matched criteria.", type = "warning", duration = 5)
-      }
+  observe({
+    cached <- get_cached_screener_data(min_aum_gbp = 0, max_ter = Inf)
+    if (nrow(cached) > 0) {
+      universe_data(cached)
+      return()
     }
+
+    static <- get_etf_universe_static()
+    if (!is.null(static)) {
+      static <- static %>% mutate(currency = as.character(currency))
+      universe_data(static)
+      return()
+    }
+
+    universe_data(dplyr::tibble())
   })
 
   output$etfTable <- DT::renderDataTable({
@@ -328,7 +230,7 @@ server <- function(input, output, session) {
         data <- data %>% filter(currency == input$currencyFilter)
     }
     
-    cols <- c("ticker", "name", "currency", "fund_size", "ter")
+    cols <- c("ticker", "name", "currency", "aum_text", "ter_text", "aum_num", "ter_num")
     cols <- intersect(cols, colnames(data))
     
     data %>%
@@ -361,10 +263,16 @@ server <- function(input, output, session) {
           ggplot() + annotate("text", x = 0.5, y = 0.5, label = "No data to plot") + theme_void()
       }
     } else {
-       ggplot() + annotate("text", x = 0.5, y = 0.5, label = "Fetch live data to see plot") + theme_void()
+       ggplot() + annotate("text", x = 0.5, y = 0.5, label = "AUM or TER not available in snapshot") + theme_void()
     }
   })
 }
 
 shinyApp(ui, server)
+```
+
+## Session Info
+
+```{r session-info}
+sessionInfo()
 ```

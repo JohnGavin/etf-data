@@ -87,6 +87,25 @@ print(head(screener_data))
 Example output (cached snapshot):
 
 ```
+
+## WebR, CORS, and Cached Data
+
+Browser builds cannot call JustETF or Yahoo Finance directly because the browser enforces cross-site request restrictions (CORS). To keep the WebR and Shinylive demos working, the project precomputes a full LSE ETF snapshot in CI using `targets` and stores it in:
+
+- `inst/extdata/etf_universe_curated.csv` (manual universe list; edit to add/remove ETFs)
+- `inst/extdata/etf_universe.csv`
+- `inst/extdata/history_cache.rds`
+- `inst/extdata/history_summary.rds`
+- `inst/extdata/vignette_data.rds`
+
+See `docs/wiki/ETF_Data_Sources.md` for the rationale, refresh steps, and alternative data sources. The cached data coverage summary is in the vignette `vignettes/data_snapshot.qmd` (published as `articles/data_snapshot.html`).
+
+To refresh the snapshot locally (only missing dates/tickers are downloaded):
+
+```r
+setwd("etfdata")
+targets::tar_make()
+```
 # A tibble: 6 x 6
   isin         aum_text     ter_text   ticker name                         currency
   <chr>        <chr>        <chr>      <chr>  <chr>                        <chr>

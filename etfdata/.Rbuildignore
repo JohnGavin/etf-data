@@ -9,3 +9,7 @@
 ^_targets\.yaml$
 ^vignettes/shinylive_dashboard\.qmd$
 ^AGENTS\.md$
+^default\.nix$
+^package\.nix$
+^docs$
+^vignettes/\.quarto$

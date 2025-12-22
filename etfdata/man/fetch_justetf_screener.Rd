@@ -2,21 +2,37 @@
 % Please edit documentation in R/fetch_justetf_screener.R
 \name{fetch_justetf_screener}
 \alias{fetch_justetf_screener}
-\title{Fetch ETF Data from JustETF Internal API}
+\title{Fetch ETF Data from JustETF}
 \usage{
-fetch_justetf_screener(min_aum_gbp = 200, max_ter = 0.75)
+fetch_justetf_screener(
+  min_aum_gbp = 0,
+  max_ter = Inf,
+  page_size = 500,
+  max_pages = Inf,
+  source = c("auto", "api", "wicket"),
+  quiet = FALSE
+)
 }
 \arguments{
-\item{min_aum_gbp}{Numeric. Minimum Assets Under Management in GBP (millions). Default is 200.}
+\item{min_aum_gbp}{Numeric. Minimum Assets Under Management in GBP (millions). Default is 0.}
 
-\item{max_ter}{Numeric. Maximum Total Expense Ratio (percentage). Default is 0.75.}
+\item{max_ter}{Numeric. Maximum Total Expense Ratio (percentage). Default is Inf.}
+
+\item{page_size}{Integer. Number of rows per page when paging the table endpoint.}
+
+\item{max_pages}{Integer. Maximum number of pages to fetch when paging. Default Inf.}
+
+\item{source}{Character. Data source preference: "auto", "api", or "wicket".}
+
+\item{quiet}{Logical. If TRUE, suppresses warnings when endpoints fail.}
 }
 \value{
 A tibble containing the filtered ETF data.
 }
 \description{
-Retrieves a list of ETFs from JustETF's internal API, applying filters for
-AUM, TER, and listing exchange.
+Retrieves a list of ETFs from JustETF, applying optional filters for
+AUM and TER. The function first tries the legacy JSON API, then falls back
+to the JustETF search table endpoint if needed.
 }
 \examples{
 \dontrun{
