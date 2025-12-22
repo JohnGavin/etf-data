@@ -41,3 +41,5 @@
 #   - same SSL failure; default.nix parse error fixed manually
 # nix-shell /Users/johngavin/docs_gh/llm/default.nix --run "cd /Users/johngavin/docs_gh/llm/finance/data/etfs/etfdata && bash /Users/johngavin/docs_gh/claude_rix/push_to_cachix.sh"
 #   - failed: missing CACHIX_AUTH_TOKEN / CACHIX_SIGNING_KEY
+# nix-shell /Users/johngavin/docs_gh/llm/default.nix --run "Rscript --vanilla -e 'setwd(\"etfdata\"); devtools::load_all(); fetch_justetf_screener(source=\"api\", quiet=FALSE)'"
+#   - logged HTTP 404 response from JustETF API
