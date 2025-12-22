@@ -6,7 +6,7 @@ articles:
   data_snapshot: data_snapshot.html
   etfdata-wasm: etfdata-wasm.html
   shinylive_dashboard: shinylive_dashboard.html
-last_built: 2025-12-22T16:29Z
+last_built: 2025-12-22T19:32Z
 urls:
   reference: https://johngavin.github.io/etf-data/reference
   article: https://johngavin.github.io/etf-data/articles
