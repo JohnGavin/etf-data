@@ -43,3 +43,9 @@
 #   - failed: missing CACHIX_AUTH_TOKEN / CACHIX_SIGNING_KEY
 # nix-shell /Users/johngavin/docs_gh/llm/default.nix --run "Rscript --vanilla -e 'setwd(\"etfdata\"); devtools::load_all(); fetch_justetf_screener(source=\"api\", quiet=FALSE)'"
 #   - logged HTTP 404 response from JustETF API
+# nix-shell default.nix --run "R_LIBS_USER=$HOME/.Rlibs_etf Rscript --vanilla -e 'setwd(\"etfdata\"); devtools::check()'"
+#   - success (0 errors/warnings/notes)
+# nix-shell default.nix --run "mkdir -p etfdata/.tmp && TMPDIR=$PWD/etfdata/.tmp R_LIBS_USER=$HOME/.Rlibs_etf Rscript --vanilla -e 'setwd(\"etfdata\"); pkgdown::build_site(devel = TRUE, preview = FALSE)'"
+#   - success
+# Rscript --vanilla -e 'setwd("etfdata"); usethis::pr_push()'
+#   - branch pushed and PR URL generated
