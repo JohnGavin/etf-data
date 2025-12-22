@@ -349,7 +349,26 @@ let
 
 # 1. Create the temporary wrapper script in a stable location
 # Use inline expansion to avoid creating literal $WRAPPER_* files
-mkdir -p $HOME/.config/positron
+valid_home=1
+if [ -z \"$HOME\" ]; then
+  valid_home=0
+else
+  case \"$HOME\" in
+    /*) ;;
+    '$HOME') valid_home=0 ;;
+    *) valid_home=0 ;;
+  esac
+fi
+
+if [ \"$valid_home\" -ne 1 ] && [ -n \"$USER\" ] && [ -d /Users/$USER ]; then
+  HOME=/Users/$USER
+  valid_home=1
+fi
+
+if [ \"$valid_home\" -ne 1 ]; then
+  printf '%s\n' 'Skipping Positron wrapper setup due to invalid HOME.'
+else
+  mkdir -p $HOME/.config/positron
 
 # The derivation output path from nix-build is stored at the GC root symlink.
 # We read the absolute path of the built environment from this symlink.
@@ -406,6 +425,7 @@ EOF
 # 2. Make the script executable and export path for RStudio/Positron
 chmod +x $HOME/.config/positron/nix-terminal-wrapper.sh
 export RSTUDIO_TERM_EXEC=$HOME/.config/positron/nix-terminal-wrapper.sh
+fi
 
 # 3. Disable user Makevars to prevent Homebrew path conflicts
 # User's ~/.R/Makevars may contain Homebrew-specific paths (e.g., /opt/homebrew/opt/libomp)

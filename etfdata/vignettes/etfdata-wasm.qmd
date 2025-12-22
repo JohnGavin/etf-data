@@ -30,6 +30,7 @@ vignette: >
 ---
 
 This vignette demonstrates the `etfdata` package running entirely in your browser using [WebR](https://docs.r-wasm.org/webr/latest/).
+See `docs/wiki/ETF_Data_Sources.md` for details on cached data and CORS.
 
 ```{webr-r}
 #| context: setup
@@ -37,8 +38,17 @@ This vignette demonstrates the `etfdata` package running entirely in your browse
 # Supress startup messages and print summary
 suppressPackageStartupMessages({
   library(etfdata)
+  library(dplyr)
   library(ggplot2)
 })
+
+load_cached_snapshot <- function() {
+  path <- system.file("extdata", "vignette_data.rds", package = "etfdata")
+  if (path == "" || !file.exists(path)) {
+    return(NULL)
+  }
+  readRDS(path)
+}
 
 # Print package summary
 pkgs <- installed.packages()[, "Package"]
@@ -55,63 +65,105 @@ if (n_pkgs > 6) {
 
 ## Data Analysis Example
 
-We retrieve the ETF universe included in the package and attempt one live download per ticker with a short timeout. This block uses live data only (no cached fallback).
+We retrieve the ETF universe included in the package and use the cached snapshot
+generated during CI. The snapshot uses the curated universe list and incremental
+price downloads (only missing dates are fetched). If no snapshot is available, we fall back to a single live
+attempt per ticker with a short timeout.
 
 ```{webr-r}
-#| caption: "Real Data Analysis (One Attempt per Ticker)"
-# 1. Get Universe (from package data)
-universe <- etfdata::get_etf_universe(n = 5)
+#| caption: "Cached Data Analysis (Precomputed Snapshot)"
+snap <- load_cached_snapshot()
+use_cached <- !is.null(snap)
+
+universe <- if (use_cached && !is.null(snap$universe)) {
+  dplyr::slice_head(snap$universe, n = 5)
+} else {
+  etfdata::get_etf_universe(n = 5)
+}
+
 print("ETF Universe (Top 5):")
 print(universe)
 
-# 2. Try to Fetch History (Yahoo) with a short timeout
-timeout_seconds <- 8
-old_timeout <- getOption("timeout")
-options(timeout = timeout_seconds)
-
-fetch_once <- function(ticker) {
-  message("Attempting download: ", ticker)
-  tryCatch(
-    etfdata::fetch_price_history(ticker, start_date = "2023-01-01"),
-    error = function(e) {
-      message("Download failed for ", ticker, ": ", e$message)
-      NULL
-    }
-  )
+if (use_cached && !is.null(snap$generated_at)) {
+  cat("Snapshot generated at:", format(snap$generated_at), "\n")
 }
 
-tickers <- universe$ticker
-history_list <- lapply(tickers, fetch_once)
-options(timeout = old_timeout)
+if (use_cached && !is.null(snap$history_summary)) {
+  summary_tbl <- snap$history_summary |>
+    dplyr::filter(.data$ticker %in% universe$ticker)
+  print(summary_tbl)
+  cat(sprintf(
+    "Succeeded: %d/%d | Failed: %d\n",
+    sum(summary_tbl$ok, na.rm = TRUE),
+    nrow(summary_tbl),
+    sum(!summary_tbl$ok, na.rm = TRUE)
+  ))
 
-rows <- vapply(history_list, function(x) if (is.null(x)) 0L else nrow(x), integer(1))
-summary_tbl <- tibble::tibble(ticker = tickers, rows = rows, ok = rows > 0)
-print(summary_tbl)
-cat(sprintf(
-  "Succeeded: %d/%d | Failed: %d\n",
-  sum(rows > 0),
-  length(tickers),
-  sum(rows == 0)
-))
-
-if (any(rows > 0)) {
-  first_ok <- history_list[[which(rows > 0)[1]]]
-  ggplot(first_ok, aes(x = date, y = close)) +
-    geom_line(color = "darkblue") +
-    labs(title = paste("Price History:", first_ok$ticker[1]), y = "Close Price") +
-    theme_minimal()
+  if (!is.null(snap$history) && nrow(snap$history) > 0) {
+    first_ok_ticker <- summary_tbl$ticker[summary_tbl$ok][1]
+    first_ok <- snap$history |>
+      dplyr::filter(.data$ticker == first_ok_ticker)
+    if (nrow(first_ok) > 0) {
+      ggplot(first_ok, aes(x = date, y = close)) +
+        geom_line(color = "darkblue") +
+        labs(title = paste("Price History:", first_ok_ticker), y = "Close Price") +
+        theme_minimal()
+    } else {
+      print("No cached price history rows available for the sample.")
+    }
+  } else {
+    print("Cached price history not available.")
+  }
 } else {
-  print("No live downloads succeeded in this browser session.")
+  timeout_seconds <- 8
+  old_timeout <- getOption("timeout")
+  options(timeout = timeout_seconds)
+
+  fetch_once <- function(ticker) {
+    message("Attempting download: ", ticker)
+    tryCatch(
+      etfdata::fetch_price_history(ticker, start_date = "2023-01-01"),
+      error = function(e) {
+        message("Download failed for ", ticker, ": ", e$message)
+        NULL
+      }
+    )
+  }
+
+  tickers <- universe$ticker
+  history_list <- lapply(tickers, fetch_once)
+  options(timeout = old_timeout)
+
+  rows <- vapply(history_list, function(x) if (is.null(x)) 0L else nrow(x), integer(1))
+  summary_tbl <- tibble::tibble(ticker = tickers, rows = rows, ok = rows > 0)
+  print(summary_tbl)
+  cat(sprintf(
+    "Succeeded: %d/%d | Failed: %d\n",
+    sum(rows > 0),
+    length(tickers),
+    sum(rows == 0)
+  ))
+
+  if (any(rows > 0)) {
+    first_ok <- history_list[[which(rows > 0)[1]]]
+    ggplot(first_ok, aes(x = date, y = close)) +
+      geom_line(color = "darkblue") +
+      labs(title = paste("Price History:", first_ok$ticker[1]), y = "Close Price") +
+      theme_minimal()
+  } else {
+    print("No live downloads succeeded in this browser session.")
+  }
 }
 ```
 
 ## JustETF Screener
 
-Query the JustETF API directly.
+Query the JustETF screener data. In the browser, we rely on the cached
+snapshot produced during the build.
 
 ```{webr-r}
 #| caption: "JustETF Screener"
-get_cached_screener <- function(min_aum_gbp = 200, max_ter = 0.75) {
+get_cached_screener <- function(min_aum_gbp = 0, max_ter = Inf) {
   path <- system.file("extdata", "vignette_data.rds", package = "etfdata")
   if (path == "" || !file.exists(path)) {
     return(dplyr::tibble())
@@ -122,21 +174,30 @@ get_cached_screener <- function(min_aum_gbp = 200, max_ter = 0.75) {
     return(dplyr::tibble())
   }
 
-  snap$metadata |>
-    dplyr::mutate(
-      aum_num = readr::parse_number(.data$aum_text),
-      ter_num = readr::parse_number(.data$ter_text)
-    ) |>
+  meta <- snap$metadata
+  if (!"aum_num" %in% names(meta) && "aum_text" %in% names(meta)) {
+    meta <- meta |> dplyr::mutate(aum_num = readr::parse_number(.data$aum_text))
+  }
+  if (!"ter_num" %in% names(meta) && "ter_text" %in% names(meta)) {
+    meta <- meta |> dplyr::mutate(ter_num = readr::parse_number(.data$ter_text))
+  }
+
+  meta |>
     dplyr::left_join(snap$universe, by = "isin") |>
     dplyr::filter(
-      .data$aum_num >= min_aum_gbp,
-      .data$ter_num <= max_ter
+      is.na(.data$aum_num) | .data$aum_num >= min_aum_gbp,
+      is.na(.data$ter_num) | .data$ter_num <= max_ter
     )
 }
 
 is_webr <- grepl("emscripten", R.version$os, ignore.case = TRUE)
 screener <- if (is_webr) {
-  message("Using cached screener snapshot (browser CORS blocks JustETF API).")
+  snap <- load_cached_snapshot()
+  if (!is.null(snap$generated_at)) {
+    message("Using cached screener snapshot from ", format(snap$generated_at), ".")
+  } else {
+    message("Using cached screener snapshot (browser sandbox blocks live requests).")
+  }
   get_cached_screener(min_aum_gbp = 200)
 } else {
   tryCatch(
@@ -153,4 +214,10 @@ if (nrow(screener) > 0) {
 } else {
   print("No results returned from screener.")
 }
+```
+
+## Session Info
+
+```{webr-r session-info}
+sessionInfo()
 ```

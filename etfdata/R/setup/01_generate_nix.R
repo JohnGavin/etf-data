@@ -30,7 +30,7 @@ system_pkgs <- c("quarto", "git", "pandoc")
 
 # Generate nix files
 rix(
-  r_ver = "4.4.1",
+  r_ver = "4.5.2",
   r_pkgs = r_pkgs,
   system_pkgs = system_pkgs,
   ide = "none",

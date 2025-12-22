@@ -9,3 +9,5 @@
 ^_targets\.yaml$
 ^vignettes/shinylive_dashboard\.qmd$
 ^AGENTS\.md$
+^docs$
+^vignettes/\.quarto$

@@ -1,0 +1,127 @@
+---
+title: "Data Snapshot Report"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show Code"
+vignette: >
+  %\VignetteIndexEntry{Data Snapshot Report}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+#| label: setup
+#| include: false
+#| error: true
+
+data_loaded <- FALSE
+snapshot <- NULL
+history <- NULL
+history_summary <- NULL
+universe <- NULL
+snapshot_info <- list(generated_at = NULL, source = NULL)
+
+tryCatch({
+  suppressPackageStartupMessages({
+    library(etfdata)
+    if (requireNamespace("dplyr", quietly = TRUE)) library(dplyr)
+    if (requireNamespace("readr", quietly = TRUE)) library(readr)
+  })
+
+  snapshot_file <- "vignette_data.rds"
+  data_path <- system.file("extdata", snapshot_file, package = "etfdata")
+  if (data_path == "" || !file.exists(data_path)) {
+    data_path <- file.path("inst", "extdata", snapshot_file)
+  }
+
+  if (file.exists(data_path)) {
+    snapshot <- readRDS(data_path)
+    universe <- snapshot$universe
+    history <- snapshot$history
+    history_summary <- snapshot$history_summary
+    snapshot_info$generated_at <- snapshot$generated_at
+    snapshot_info$source <- snapshot$source
+    data_loaded <- TRUE
+  }
+}, error = function(e) {
+  message("Failed to load snapshot: ", e$message)
+})
+```
+
+This report summarizes the cached ETF data stored in the package. The targets
+pipeline only downloads missing data or missing date ranges.
+
+## Snapshot Overview
+
+```{r}
+#| label: snapshot-overview
+#| echo: true
+
+if (data_loaded && !is.null(universe)) {
+  cat("Snapshot generated at:", format(snapshot_info$generated_at), "\n")
+  cat("Source:", snapshot_info$source, "\n\n")
+  cat("Tickers:", nrow(universe), "\n")
+}
+
+if (data_loaded && !is.null(history) && nrow(history) > 0) {
+  cat("Total rows:", nrow(history), "\n")
+  cat("Date range:", format(min(history$date)), "to", format(max(history$date)), "\n")
+}
+```
+
+## Coverage Summary
+
+```{r}
+#| label: coverage-summary
+#| echo: true
+
+if (data_loaded && !is.null(history_summary) && nrow(history_summary) > 0) {
+  ok_count <- sum(history_summary$ok, na.rm = TRUE)
+  total <- nrow(history_summary)
+  cat("Complete coverage:", ok_count, "/", total, "\n")
+  cat("Missing coverage:", total - ok_count, "\n\n")
+  print(head(history_summary, 10))
+}
+```
+
+## Missing Data
+
+```{r}
+#| label: missing-data
+#| echo: true
+
+if (data_loaded && !is.null(history_summary) && nrow(history_summary) > 0) {
+  missing <- history_summary %>%
+    dplyr::filter(!.data$ok | .data$rows == 0)
+  if (nrow(missing) == 0) {
+    print("No missing coverage detected.")
+  } else {
+    print(head(missing, 20))
+  }
+}
+```
+
+## Recently Added Rows
+
+```{r}
+#| label: rows-added
+#| echo: true
+
+if (data_loaded && !is.null(history_summary) && nrow(history_summary) > 0) {
+  recent <- history_summary %>%
+    dplyr::filter(.data$rows_added > 0) %>%
+    dplyr::arrange(dplyr::desc(.data$rows_added))
+  if (nrow(recent) == 0) {
+    print("No new rows were added in this snapshot.")
+  } else {
+    print(head(recent, 20))
+  }
+}
+```
+
+## Session Info
+
+```{r session-info}
+sessionInfo()
+```

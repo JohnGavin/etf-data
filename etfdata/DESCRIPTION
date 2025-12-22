@@ -4,6 +4,7 @@ Version: 0.0.0.9000
 Authors@R: person("John", "Gavin", email = "john@example.com", role = c("aut", "cre"))
 Description: Tools to fetch, clean, and store historical and metadata for European bond and equity index ETFs (UCITS) listed on the London Stock Exchange.
 License: MIT + file LICENSE
+URL: https://johngavin.github.io/etf-data
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -13,6 +14,7 @@ Imports:
     dplyr,
     httr2,
     janitor,
+    jsonlite,
     logger,
     lubridate,
     magrittr,
