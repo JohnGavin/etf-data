@@ -14,7 +14,7 @@ r_pkgs <- c(
   # Financial Data Specific
   "quantmod", "tidyquant",
   # Tidyverse & Data Manipulation
-  "dplyr", "tibble", "readr", "janitor", "tidyr", "stringr", "purrr", "lubridate",
+  "dplyr", "tibble", "readr", "janitor", "tidyr", "stringr", "purrr", "lubridate", "logger",
   # Excel Reading
   "readxl",
   # Pipeline

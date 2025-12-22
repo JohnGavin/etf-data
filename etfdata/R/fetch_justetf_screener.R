@@ -65,6 +65,38 @@ fetch_justetf_screener <- function(min_aum_gbp = 0,
   df
 }
 
+warn_justetf_body <- function(source, status, body, quiet = FALSE) {
+  if (quiet) {
+    return(invisible(NULL))
+  }
+
+  if (is.null(body)) {
+    body <- ""
+  }
+  snippet <- substr(body, 1, 2000)
+  warning(
+    sprintf(
+      "JustETF %s response (status %s). First 2KB:\n%s",
+      source,
+      status,
+      snippet
+    )
+  )
+}
+
+warn_justetf_error <- function(source, err, quiet = FALSE) {
+  if (quiet) {
+    return(invisible(NULL))
+  }
+
+  msg <- conditionMessage(attr(err, "condition"))
+  if (!nzchar(msg)) {
+    msg <- as.character(err)
+  }
+
+  warning(sprintf("JustETF %s request failed: %s", source, msg))
+}
+
 try_justetf_api <- function(quiet = FALSE) {
   url <- "https://www.justetf.com/api/etfs/en/search"
   req <- httr2::request(url) %>%
@@ -83,21 +115,24 @@ try_justetf_api <- function(quiet = FALSE) {
 
   resp <- try(httr2::req_perform(req), silent = TRUE)
   if (inherits(resp, "try-error")) {
-    if (!quiet) {
-      warning("JustETF API request failed.")
-    }
+    warn_justetf_error("API", resp, quiet)
     return(dplyr::tibble())
   }
 
-  if (httr2::resp_status(resp) != 200) {
-    if (!quiet) {
-      warning("JustETF API status ", httr2::resp_status(resp))
-    }
+  status <- httr2::resp_status(resp)
+  body <- httr2::resp_body_string(resp)
+  if (status != 200) {
+    warn_justetf_body("API", status, body, quiet)
     return(dplyr::tibble())
   }
 
-  json_data <- httr2::resp_body_json(resp)
-  parse_justetf_json(json_data)
+  parsed <- try(jsonlite::fromJSON(body, simplifyVector = FALSE), silent = TRUE)
+  if (inherits(parsed, "try-error")) {
+    warn_justetf_body("API parse", status, body, quiet)
+    return(dplyr::tibble())
+  }
+
+  parse_justetf_json(parsed)
 }
 
 try_justetf_wicket <- function(page_size = 500, max_pages = Inf, quiet = FALSE) {
@@ -204,14 +239,21 @@ fetch_wicket_page <- function(callback_url,
 
   resp <- try(httr2::req_perform(req), silent = TRUE)
   if (inherits(resp, "try-error")) {
-    if (!quiet) {
-      warning("JustETF table request failed.")
-    }
+    warn_justetf_error("Wicket", resp, quiet)
     return(list(data = dplyr::tibble(), total = NA_integer_))
   }
 
+  status <- httr2::resp_status(resp)
   text <- httr2::resp_body_string(resp)
+  if (status != 200) {
+    warn_justetf_body("Wicket", status, text, quiet)
+    return(list(data = dplyr::tibble(), total = NA_integer_))
+  }
+
   parsed <- parse_justetf_text(text)
+  if (!quiet && nrow(parsed$data) == 0 && is.na(parsed$total)) {
+    warn_justetf_body("Wicket parse", status, text, quiet)
+  }
   parsed
 }
 
